@@ -38,7 +38,11 @@ curl -fsSL https://raw.githubusercontent.com/kimonoapps/kimono/main/scripts/inst
 
 The installer detects amd64/arm64, downloads the latest static release, verifies
 its SHA-256 checksum, installs `/usr/local/bin/kimono`, and starts the server
-appliance. DNS records and firewall ports must already point to the VM.
+appliance. Before starting containers, it discovers the VM's public IPv4 and
+checks that both public DNS A records resolve to it. If DNS is wrong, Kimono
+saves the generated configuration, prints the mismatch, and waits instead of
+starting Caddy with broken certificate prerequisites. Fix DNS and run `sudo
+kimono server start` to check again and continue.
 
 ## Main server VM
 
@@ -52,6 +56,7 @@ UDP 3478, then run:
 
 ```bash
 sudo kimono server install --domain example.com --email you@example.com
+sudo kimono server doctor
 sudo kimono server status
 ```
 
@@ -66,6 +71,11 @@ sudo kimono server update
 sudo kimono server stop
 sudo kimono server start
 ```
+
+`server doctor` repeats the public DNS preflight and shows container health.
+Advanced private-network or split-DNS deployments can bypass the guard with
+`server start --skip-dns-check`; doing so may prevent public HTTPS certificates
+from being issued.
 
 ## Application VM
 

@@ -26,17 +26,19 @@ func New(runner *system.Runner) *Manager {
 
 func (m *Manager) Execute(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: kimono server <install|start|stop|status|logs|update|backup>")
+		return errors.New("usage: kimono server <install|start|stop|status|doctor|logs|update|backup>")
 	}
 	switch args[0] {
 	case "install":
 		return m.install(args[1:])
 	case "start":
-		return m.compose("up", "-d", "--remove-orphans")
+		return m.start(args[1:])
 	case "stop":
 		return m.compose("down")
 	case "status":
 		return m.compose("ps")
+	case "doctor":
+		return m.doctor()
 	case "logs":
 		return m.logs(args[1:])
 	case "update":
@@ -59,6 +61,7 @@ func (m *Manager) install(args []string) error {
 	email := flags.String("email", "", "ACME account email")
 	magicDNS := flags.String("magic-dns", "kimono.internal", "private MagicDNS suffix")
 	noStart := flags.Bool("no-start", false, "write configuration without starting services")
+	skipDNSCheck := flags.Bool("skip-dns-check", false, "start even when public DNS cannot be verified")
 	force := flags.Bool("force", false, "replace an existing server configuration and its secrets")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -134,12 +137,51 @@ KIMONO_MARK_ASSET_PATH=%s
 
 	_, _ = fmt.Fprintf(m.Runner.Stdout, "\nKimono server configured in %s\n", m.serverDir())
 	_, _ = fmt.Fprintf(m.Runner.Stdout, "Identity: https://%s\nMesh:     https://%s\n\n", *identityDomain, *meshDomain)
-	_, _ = fmt.Fprintln(m.Runner.Stdout, "Create DNS A/AAAA records for both names pointing directly to this VM.")
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "Create DNS A records for both names pointing directly to this VM's public IPv4.")
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "The mesh record must not use the Cloudflare proxy.")
 	if *noStart {
 		return nil
 	}
+	if !*skipDNSCheck {
+		if err := m.checkDNS(*identityDomain, *meshDomain); err != nil {
+			_, _ = fmt.Fprintln(m.Runner.Stdout, "\nKimono has been configured but was not started.")
+			_, _ = fmt.Fprintln(m.Runner.Stdout, "Fix the DNS records, wait for propagation, then run: sudo kimono server start")
+			return err
+		}
+	} else {
+		_, _ = fmt.Fprintln(m.Runner.Stdout, "WARNING: DNS verification skipped; HTTPS certificates may fail.")
+	}
 	return m.compose("up", "-d", "--remove-orphans")
+}
+
+func (m *Manager) start(args []string) error {
+	flags := flag.NewFlagSet("server start", flag.ContinueOnError)
+	skipDNSCheck := flags.Bool("skip-dns-check", false, "start even when public DNS cannot be verified")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if !*skipDNSCheck {
+		identityDomain, meshDomain, err := m.configuredDomains()
+		if err != nil {
+			return err
+		}
+		if err := m.checkDNS(identityDomain, meshDomain); err != nil {
+			return fmt.Errorf("DNS verification failed; fix DNS or use --skip-dns-check for an advanced setup: %w", err)
+		}
+	}
+	return m.compose("up", "-d", "--remove-orphans")
+}
+
+func (m *Manager) doctor() error {
+	identityDomain, meshDomain, err := m.configuredDomains()
+	if err != nil {
+		return err
+	}
+	if err := m.checkDNS(identityDomain, meshDomain); err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "\nDNS is ready. Checking containers…")
+	return m.compose("ps")
 }
 
 func (m *Manager) ensureDocker() error {

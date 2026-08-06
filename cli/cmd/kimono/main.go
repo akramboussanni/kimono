@@ -59,6 +59,7 @@ Server commands:
   start     Start the Kimono appliance
   stop      Stop the Kimono appliance
   status    Show appliance service health
+  doctor    Verify public DNS and show appliance health
   logs      Follow appliance logs
   update    Pull pinned service updates and recreate the appliance
   backup    Stop briefly and create a complete volume backup

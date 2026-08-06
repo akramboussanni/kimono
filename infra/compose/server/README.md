@@ -25,6 +25,11 @@ The mesh record must be DNS-only. Do not place Headscale behind a Cloudflare
 Tunnel or enable Cloudflare's HTTP proxy for this record; the Tailscale control
 protocol uses an HTTP POST upgrade that Cloudflare does not proxy correctly.
 
+`kimono server install` verifies both A records against the VM's detected public
+IPv4 before starting the appliance. It leaves generated configuration in place
+when DNS is not ready; correct the records and run `sudo kimono server start`.
+Use `sudo kimono server doctor` to repeat the check later.
+
 ## Configure
 
 Create the private environment file:
