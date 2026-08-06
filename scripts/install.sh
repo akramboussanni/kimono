@@ -33,10 +33,10 @@ temporary_directory=$(mktemp -d)
 trap 'rm -rf "$temporary_directory"' EXIT HUP INT TERM
 
 asset="kimono_linux_${architecture}"
-curl -fL --retry 3 --proto '=https' --tlsv1.2 \
+curl -fsSL --retry 3 --proto '=https' --tlsv1.2 \
   "${download_base}/${asset}" \
   -o "${temporary_directory}/${asset}"
-curl -fL --retry 3 --proto '=https' --tlsv1.2 \
+curl -fsSL --retry 3 --proto '=https' --tlsv1.2 \
   "${download_base}/SHA256SUMS" \
   -o "${temporary_directory}/SHA256SUMS"
 
