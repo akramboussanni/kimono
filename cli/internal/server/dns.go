@@ -104,24 +104,32 @@ func containsAddress(addresses []string, expected string) bool {
 }
 
 func (m *Manager) configuredDomains() (string, string, error) {
-	file, err := os.Open(m.envPath())
+	values, err := readServerEnvironment(m.envPath())
 	if err != nil {
 		return "", "", fmt.Errorf("Kimono server is not installed; run `sudo kimono server install`: %w", err)
+	}
+	if values["AUTHENTIK_DOMAIN"] == "" || values["MESH_DOMAIN"] == "" {
+		return "", "", errors.New("server configuration is missing AUTHENTIK_DOMAIN or MESH_DOMAIN")
+	}
+	return values["AUTHENTIK_DOMAIN"], values["MESH_DOMAIN"], nil
+}
+
+func readServerEnvironment(path string) (map[string]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
 	defer file.Close()
 	values := map[string]string{}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		parts := strings.SplitN(scanner.Text(), "=", 2)
-		if len(parts) == 2 && (parts[0] == "AUTHENTIK_DOMAIN" || parts[0] == "MESH_DOMAIN") {
+		if len(parts) == 2 && parts[0] != "" && !strings.HasPrefix(parts[0], "#") {
 			values[parts[0]] = strings.TrimSpace(parts[1])
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", "", err
+		return nil, err
 	}
-	if values["AUTHENTIK_DOMAIN"] == "" || values["MESH_DOMAIN"] == "" {
-		return "", "", errors.New("server configuration is missing AUTHENTIK_DOMAIN or MESH_DOMAIN")
-	}
-	return values["AUTHENTIK_DOMAIN"], values["MESH_DOMAIN"], nil
+	return values, nil
 }

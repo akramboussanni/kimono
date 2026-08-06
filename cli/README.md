@@ -57,6 +57,7 @@ UDP 3478, then run:
 ```bash
 sudo kimono server install --domain example.com --email you@example.com
 sudo kimono server doctor
+sudo kimono server repair
 sudo kimono server status
 ```
 
@@ -73,6 +74,10 @@ sudo kimono server start
 ```
 
 `server doctor` repeats the public DNS preflight and shows container health.
+`server repair` safely restores the embedded appliance files and expected bind
+mount permissions without deleting volumes or regenerating secrets.
+Forced reconfiguration also preserves all existing persistent secrets; it only
+changes the explicitly supplied settings.
 Advanced private-network or split-DNS deployments can bypass the guard with
 `server start --skip-dns-check`; doing so may prevent public HTTPS certificates
 from being issued.

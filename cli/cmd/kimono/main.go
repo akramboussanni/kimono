@@ -60,6 +60,7 @@ Server commands:
   stop      Stop the Kimono appliance
   status    Show appliance service health
   doctor    Verify public DNS and show appliance health
+  repair    Restore embedded files and container-readable permissions
   cloudflare-ddns  Keep server DNS pointed at a dynamic public IP
   logs      Follow appliance logs
   update    Pull pinned service updates and recreate the appliance

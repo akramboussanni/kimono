@@ -39,6 +39,8 @@ func (m *Manager) Execute(args []string) error {
 		return m.compose("ps")
 	case "doctor":
 		return m.doctor()
+	case "repair":
+		return m.repair()
 	case "cloudflare-ddns":
 		return m.cloudflareDDNS(args[1:])
 	case "logs":
@@ -68,8 +70,16 @@ func (m *Manager) install(args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if _, err := os.Stat(m.envPath()); err == nil && !*force {
-		return errors.New("Kimono server is already installed; use `kimono server update`, or pass --force to replace its configuration")
+	existingEnvironment := map[string]string{}
+	if _, err := os.Stat(m.envPath()); err == nil {
+		if !*force {
+			return errors.New("Kimono server is already installed; use `kimono server update`, or pass --force to replace its configuration")
+		}
+		existingEnvironment, err = readServerEnvironment(m.envPath())
+		if err != nil {
+			return fmt.Errorf("read existing server secrets: %w", err)
+		}
+		_, _ = fmt.Fprintln(m.Runner.Stdout, "Preserving existing database, Authentik, and OIDC secrets.")
 	}
 
 	reader := bufio.NewReader(m.Runner.Stdin)
@@ -97,15 +107,15 @@ func (m *Manager) install(args []string) error {
 	if err := m.extractAppliance(); err != nil {
 		return err
 	}
-	pgPass, err := system.RandomBase64(36)
+	pgPass, err := preservedOrRandom(existingEnvironment, "PG_PASS", func() (string, error) { return system.RandomBase64(36) })
 	if err != nil {
 		return err
 	}
-	authSecret, err := system.RandomBase64(60)
+	authSecret, err := preservedOrRandom(existingEnvironment, "AUTHENTIK_SECRET_KEY", func() (string, error) { return system.RandomBase64(60) })
 	if err != nil {
 		return err
 	}
-	oidcSecret, err := system.RandomHex(32)
+	oidcSecret, err := preservedOrRandom(existingEnvironment, "KIMONO_HEADSCALE_OIDC_CLIENT_SECRET", func() (string, error) { return system.RandomHex(32) })
 	if err != nil {
 		return err
 	}
@@ -233,7 +243,28 @@ func (m *Manager) extractAppliance() error {
 			return err
 		}
 	}
+	// Authentik's server runs as a non-root user. Bind-mounted template
+	// directories must therefore be traversable even when they are empty.
+	for _, directory := range []string{
+		filepath.Join(m.serverDir(), "authentik"),
+		filepath.Join(m.serverDir(), "authentik", "custom-templates"),
+	} {
+		if err := os.Chmod(directory, 0755); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (m *Manager) repair() error {
+	if err := system.RequireRoot(); err != nil {
+		return err
+	}
+	if err := m.extractAppliance(); err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "Repaired embedded appliance files and container-readable permissions.")
+	return m.compose("up", "-d", "--remove-orphans")
 }
 
 func (m *Manager) logs(args []string) error {
@@ -243,6 +274,9 @@ func (m *Manager) logs(args []string) error {
 }
 
 func (m *Manager) update() error {
+	if err := m.extractAppliance(); err != nil {
+		return err
+	}
 	if err := m.compose("pull"); err != nil {
 		return err
 	}
@@ -307,4 +341,11 @@ func prompt(reader *bufio.Reader, writer interface{ Write([]byte) (int, error) }
 		return fallback
 	}
 	return value
+}
+
+func preservedOrRandom(environment map[string]string, key string, generate func() (string, error)) (string, error) {
+	if value := environment[key]; value != "" {
+		return value, nil
+	}
+	return generate()
 }
