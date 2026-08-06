@@ -293,11 +293,11 @@ func (m *Manager) repair() error {
 }
 
 func (m *Manager) bootstrapBlueprint() error {
-	command := `from authentik.blueprints.v1.tasks import blueprints_find, check_blueprint_v1_file; [check_blueprint_v1_file(blueprint) for blueprint in blueprints_find() if blueprint.path == "kimono/kimono-headscale.yaml"]`
+	command := `from hashlib import sha512; from authentik.blueprints.models import BlueprintInstance; from authentik.blueprints.v1.importer import Importer; from authentik.blueprints.v1.tasks import blueprints_find, check_blueprint_v1_file; blueprints = [blueprint for blueprint in blueprints_find() if blueprint.path == "kimono/kimono-headscale.yaml"]; assert blueprints, "Kimono blueprint file was not discovered"; check_blueprint_v1_file(blueprints[0]); instance = BlueprintInstance.objects.get(path=blueprints[0].path); content = instance.retrieve(); applied = Importer.from_string(content, instance.context).apply(); assert applied, "Kimono blueprint failed to apply"; instance.status = "successful"; instance.last_applied_hash = sha512(content.encode()).hexdigest(); instance.save()`
 	if err := m.Runner.Run("docker", "exec", "kimono-server-authentik-worker-1", "ak", "shell", "-c", command); err != nil {
-		return fmt.Errorf("create Kimono Authentik blueprint instance: %w", err)
+		return fmt.Errorf("create and apply Kimono Authentik blueprint: %w", err)
 	}
-	_, _ = fmt.Fprintln(m.Runner.Stdout, "Kimono Authentik blueprint discovered and queued for application.")
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "Kimono Authentik blueprint applied.")
 	return nil
 }
 
