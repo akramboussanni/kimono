@@ -30,6 +30,11 @@ IPv4 before starting the appliance. It leaves generated configuration in place
 when DNS is not ready; correct the records and run `sudo kimono server start`.
 Use `sudo kimono server doctor` to repeat the check later.
 
+For dynamic public IPs, run `sudo kimono server cloudflare-ddns setup` and use a
+zone-scoped Cloudflare **Edit zone DNS** API token. Kimono manages the identity
+and mesh A records as DNS-only and installs a five-minute systemd timer. The
+token is stored root-only outside the Compose environment file.
+
 ## Configure
 
 Create the private environment file:

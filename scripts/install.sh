@@ -100,6 +100,14 @@ if [ "$1" = "server" ]; then
       echo "Domain and email are required." >&2
       exit 1
     fi
+    dynamic_dns=$(prompt "Configure Cloudflare Dynamic DNS? (y/N)" "n")
+    case "$dynamic_dns" in
+      y|Y|yes|YES)
+        "$install_path" server install --domain "$domain" --email "$email" --no-start
+        "$install_path" server cloudflare-ddns setup
+        exec "$install_path" server start
+        ;;
+    esac
     set -- --domain "$domain" --email "$email"
   fi
   exec "$install_path" server install "$@"

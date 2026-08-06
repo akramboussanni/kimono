@@ -77,6 +77,28 @@ Advanced private-network or split-DNS deployments can bypass the guard with
 `server start --skip-dns-check`; doing so may prevent public HTTPS certificates
 from being issued.
 
+### Cloudflare Dynamic DNS
+
+The interactive main-server installer can configure Dynamic DNS before the
+appliance starts. Create a Cloudflare API token from the **Edit zone DNS**
+template, restrict it to the Kimono zone, and paste it into the hidden prompt.
+Kimono immediately creates or updates the identity and mesh A records as
+DNS-only, stores the token at `/var/lib/kimono/cloudflare-ddns.json` with mode
+`0600`, and enables a systemd timer that checks every five minutes.
+
+Configure or manage it later with:
+
+```bash
+sudo kimono server cloudflare-ddns setup
+sudo kimono server cloudflare-ddns run
+sudo kimono server cloudflare-ddns status
+sudo kimono server cloudflare-ddns remove
+```
+
+For unattended setup, put only the token in a root-readable file and use
+`setup --token-file /path/to/token --zone example.com`. Do not put API tokens
+directly in command arguments or shell history.
+
 ## Application VM
 
 Run the same binary on a fresh Ubuntu/Debian VM:

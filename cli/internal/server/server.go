@@ -26,7 +26,7 @@ func New(runner *system.Runner) *Manager {
 
 func (m *Manager) Execute(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: kimono server <install|start|stop|status|doctor|logs|update|backup>")
+		return errors.New("usage: kimono server <install|start|stop|status|doctor|cloudflare-ddns|logs|update|backup>")
 	}
 	switch args[0] {
 	case "install":
@@ -39,6 +39,8 @@ func (m *Manager) Execute(args []string) error {
 		return m.compose("ps")
 	case "doctor":
 		return m.doctor()
+	case "cloudflare-ddns":
+		return m.cloudflareDDNS(args[1:])
 	case "logs":
 		return m.logs(args[1:])
 	case "update":
