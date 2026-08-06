@@ -1,0 +1,12 @@
+{
+  // Household-first default: authenticated members may reach every enrolled
+  // device. Tighten this with tags and groups before using Kimono for a larger
+  // or partially trusted organization.
+  "acls": [
+    {
+      "action": "accept",
+      "src": ["*"],
+      "dst": ["*:*"],
+    },
+  ],
+}

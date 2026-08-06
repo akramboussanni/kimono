@@ -1,0 +1,149 @@
+name: kimono-server
+
+services:
+  postgresql:
+    image: docker.io/library/postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PG_DB:-authentik}
+      POSTGRES_PASSWORD: ${PG_PASS:?database password required}
+      POSTGRES_USER: ${PG_USER:-authentik}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - authentik_database:/var/lib/postgresql/data
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2026.5.6}
+    command: server
+    restart: unless-stopped
+    environment: &authentik_environment
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?Authentik secret key required}
+      AUTHENTIK_DOMAIN: ${AUTHENTIK_DOMAIN:?Authentik domain required}
+      KIMONO_HEADSCALE_OIDC_CLIENT_ID: ${KIMONO_HEADSCALE_OIDC_CLIENT_ID:-kimono-headscale}
+      KIMONO_HEADSCALE_OIDC_CLIENT_SECRET: ${KIMONO_HEADSCALE_OIDC_CLIENT_SECRET:?Headscale OIDC client secret required}
+      KIMONO_HEADSCALE_OIDC_REDIRECT_URI: ${KIMONO_HEADSCALE_OIDC_REDIRECT_URI:?Headscale OIDC redirect URI required}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "ak", "healthcheck"]
+      start_period: 60s
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    shm_size: 512mb
+    volumes:
+      - authentik_data:/data
+      - ./authentik/custom-templates:/templates:ro
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_TAG:-2026.5.6}
+    command: worker
+    restart: unless-stopped
+    user: root
+    environment: *authentik_environment
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "ak", "healthcheck"]
+      start_period: 60s
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    shm_size: 512mb
+    volumes:
+      - authentik_data:/data
+      - ./authentik/blueprints:/blueprints/kimono:ro
+      - ./authentik/certs:/certs
+      - ./authentik/custom-templates:/templates:ro
+
+  headscale-config:
+    image: docker.io/library/alpine:3.22
+    restart: "no"
+    environment:
+      HEADSCALE_NODE_EXPIRY: ${HEADSCALE_NODE_EXPIRY:-180d}
+      KIMONO_HEADSCALE_OIDC_CLIENT_ID: ${KIMONO_HEADSCALE_OIDC_CLIENT_ID:-kimono-headscale}
+      KIMONO_HEADSCALE_OIDC_ISSUER: ${KIMONO_HEADSCALE_OIDC_ISSUER:?Headscale OIDC issuer required}
+      MAGIC_DNS_DOMAIN: ${MAGIC_DNS_DOMAIN:?MagicDNS domain required}
+      MESH_DOMAIN: ${MESH_DOMAIN:?mesh domain required}
+    command: ["/bin/sh", "/opt/kimono/render-headscale-config.sh"]
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./headscale/config.yaml.tmpl:/opt/kimono/config.yaml.tmpl:ro
+      - ./headscale/policy.hujson:/opt/kimono/policy.hujson:ro
+      - ./scripts/render-headscale-config.sh:/opt/kimono/render-headscale-config.sh:ro
+      - headscale_config:/output
+
+  headscale:
+    image: docker.io/headscale/headscale:${HEADSCALE_TAG:-0.28.0}
+    command: serve
+    restart: unless-stopped
+    read_only: true
+    environment:
+      HEADSCALE_CONFIG: /etc/headscale/config.yaml
+      HEADSCALE_OIDC_CLIENT_SECRET: ${KIMONO_HEADSCALE_OIDC_CLIENT_SECRET:?Headscale OIDC client secret required}
+    depends_on:
+      authentik-server:
+        condition: service_healthy
+      headscale-config:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "headscale", "health"]
+      start_period: 20s
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /var/run/headscale
+    ports:
+      - "3478:3478/udp"
+    volumes:
+      - headscale_config:/etc/headscale:ro
+      - headscale_data:/var/lib/headscale
+
+  caddy:
+    image: docker.io/library/caddy:${CADDY_TAG:-2.10.2-alpine}
+    restart: unless-stopped
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?ACME email required}
+      AUTHENTIK_DOMAIN: ${AUTHENTIK_DOMAIN:?Authentik domain required}
+      MESH_DOMAIN: ${MESH_DOMAIN:?mesh domain required}
+    depends_on:
+      authentik-server:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${KIMONO_SAKURA_ASSET_PATH:-../../../apps/portal/public/art/sakura-branch-v2.png}:/srv/kimono-brand/sakura-branch-v2.png:ro
+      - ${KIMONO_MARK_ASSET_PATH:-../../../apps/portal/public/kimono-sakura-mark.svg}:/srv/kimono-brand/kimono-sakura-mark.svg:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  authentik_database:
+  authentik_data:
+  caddy_config:
+  caddy_data:
+  headscale_config:
+  headscale_data:

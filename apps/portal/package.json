@@ -1,0 +1,30 @@
+{
+  "name": "@kimono/portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "lint": "eslint .",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kimono/app-sdk": "workspace:*",
+    "@kimono/ui": "workspace:*",
+    "next": "16.2.2",
+    "next-auth": "5.0.0-beta.32",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.14",
+    "@types/node": "^20.19.13",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "eslint": "^9.35.0",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.2"
+  }
+}

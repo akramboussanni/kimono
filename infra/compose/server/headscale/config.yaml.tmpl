@@ -1,0 +1,103 @@
+---
+server_url: https://__MESH_DOMAIN__
+listen_addr: 0.0.0.0:8080
+metrics_listen_addr: 0.0.0.0:9090
+grpc_listen_addr: 127.0.0.1:50443
+grpc_allow_insecure: false
+
+noise:
+  private_key_path: /var/lib/headscale/noise_private.key
+
+prefixes:
+  v4: 100.64.0.0/10
+  v6: fd7a:115c:a1e0::/48
+  allocation: sequential
+
+derp:
+  server:
+    enabled: true
+    region_id: 999
+    region_code: kimono
+    region_name: Kimono Embedded Relay
+    verify_clients: true
+    stun_listen_addr: 0.0.0.0:3478
+    private_key_path: /var/lib/headscale/derp_server_private.key
+    automatically_add_embedded_derp_region: true
+  # Keep the public DERP map as a fallback when a direct connection and the
+  # Kimono relay are both unavailable. Relayed payloads remain encrypted.
+  urls:
+    - https://controlplane.tailscale.com/derpmap/default
+  paths: []
+  auto_update_enabled: true
+  update_frequency: 3h
+
+disable_check_updates: false
+ephemeral_node_inactivity_timeout: 30m
+
+database:
+  type: sqlite
+  debug: false
+  gorm:
+    prepare_stmt: true
+    parameterized_queries: true
+    skip_err_record_not_found: true
+    slow_threshold: 1000
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
+    write_ahead_log: true
+    wal_autocheckpoint: 1000
+
+acme_url: https://acme-v02.api.letsencrypt.org/directory
+acme_email: ""
+tls_letsencrypt_hostname: ""
+tls_letsencrypt_cache_dir: /var/lib/headscale/cache
+tls_letsencrypt_challenge_type: HTTP-01
+tls_letsencrypt_listen: :http
+tls_cert_path: ""
+tls_key_path: ""
+
+log:
+  level: info
+  format: json
+
+policy:
+  mode: file
+  path: /etc/headscale/policy.hujson
+
+dns:
+  magic_dns: true
+  base_domain: __MAGIC_DNS_DOMAIN__
+  override_local_dns: false
+  nameservers:
+    global: []
+    split: {}
+  search_domains: []
+  extra_records: []
+
+unix_socket: /var/run/headscale/headscale.sock
+unix_socket_permission: "0770"
+
+trusted_proxies:
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+
+oidc:
+  only_start_if_oidc_is_available: true
+  issuer: __OIDC_ISSUER__
+  client_id: __OIDC_CLIENT_ID__
+  expiry: __NODE_EXPIRY__
+  use_expiry_from_token: false
+  scope: [openid, profile, email]
+  email_verified_required: true
+  pkce:
+    enabled: true
+    method: S256
+
+logtail:
+  enabled: false
+
+randomize_client_port: false
+
+taildrop:
+  enabled: true

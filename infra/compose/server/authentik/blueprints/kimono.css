@@ -1,0 +1,179 @@
+:root,
+html[data-theme="light"] {
+  --kimono-sumi: #24221f;
+  --kimono-sumi-soft: #59554f;
+  --kimono-muted: #817b72;
+  --kimono-paper: #f6f2e9;
+  --kimono-paper-warm: #ede6d9;
+  --kimono-paper-light: #fcfaf5;
+  --kimono-line: #d7cec0;
+  --kimono-sakura: #c87982;
+  --kimono-sakura-pale: #ead0d0;
+  --kimono-indigo: #344c62;
+  --kimono-vermillion: #b24d3d;
+
+  --ak-accent: var(--kimono-vermillion);
+  --ak-global--background-color: var(--kimono-paper);
+  --ak-c-login__main--BackgroundColor: color-mix(in srgb, var(--kimono-paper-light) 92%, transparent);
+  --ak-c-login__main--Color: var(--kimono-sumi);
+  --ak-c-login__main--BoxShadow: none;
+  --ak-c-login__content-BoxShadow: inset 1px 0 var(--kimono-line);
+  --ak-c-login__footer--Color: var(--kimono-muted);
+  --ak-c-login--BackgroundColorOverlay: transparent;
+  --ak-c-login--MaxWidth: 37rem;
+
+  --pf-global--primary-color--100: var(--kimono-indigo);
+  --pf-global--primary-color--200: #263d51;
+  --pf-global--BackgroundColor--100: var(--kimono-paper-light);
+  --pf-global--BackgroundColor--light-100: var(--kimono-paper-light);
+  --pf-global--Color--100: var(--kimono-sumi);
+  --pf-global--Color--dark-100: var(--kimono-sumi);
+  --pf-global--Color--200: var(--kimono-sumi-soft);
+  --pf-global--BorderColor--100: var(--kimono-line);
+  --pf-global--FontFamily--sans-serif: Arial, Helvetica, sans-serif;
+  --pf-global--FontFamily--heading--sans-serif: Georgia, "Times New Roman", serif;
+  --pf-v5-global--primary-color--100: var(--kimono-indigo);
+  --pf-v5-global--primary-color--200: #263d51;
+  --pf-v5-global--BackgroundColor--100: var(--kimono-paper-light);
+  --pf-v5-global--Color--100: var(--kimono-sumi);
+  --pf-v5-global--Color--200: var(--kimono-sumi-soft);
+  --pf-v5-global--BorderColor--100: var(--kimono-line);
+  color-scheme: light;
+}
+
+body {
+  color: var(--kimono-sumi);
+  background-color: var(--kimono-paper);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body::before {
+  position: fixed;
+  z-index: 1000;
+  top: clamp(28px, 5vw, 68px);
+  right: clamp(24px, 5vw, 72px);
+  content: "着物 · KIMONO · 家";
+  color: var(--kimono-sumi-soft);
+  font: 11px/1.5 Georgia, "Times New Roman", serif;
+  letter-spacing: .3em;
+  pointer-events: none;
+  writing-mode: vertical-rl;
+  opacity: .72;
+}
+
+body::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: .28;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");
+}
+
+.pf-c-background-image,
+.pf-v5-c-background-image {
+  background-color: var(--kimono-paper) !important;
+  background-position: right top !important;
+  background-size: min(68vw, 1080px) auto !important;
+  filter: saturate(.88) contrast(.96);
+}
+
+.pf-c-background-image::before,
+.pf-v5-c-background-image::before {
+  background: linear-gradient(90deg, var(--kimono-paper) 0%, rgba(246, 242, 233, .96) 34%, rgba(246, 242, 233, .16) 72%) !important;
+}
+
+.pf-c-login__main,
+.pf-v5-c-login__main {
+  border-right: 1px solid var(--kimono-line);
+  backdrop-filter: blur(18px);
+}
+
+.pf-c-login__main-header,
+.pf-v5-c-login__main-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--kimono-line) 72%, transparent);
+}
+
+.pf-c-brand,
+.pf-v5-c-brand {
+  width: 54px;
+  max-width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.pf-c-title,
+.pf-v5-c-title,
+.pf-c-login__main-header,
+.pf-v5-c-login__main-header {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -.025em;
+}
+
+.pf-c-form-control,
+.pf-v5-c-form-control,
+input:not([type="checkbox"]):not([type="radio"]) {
+  border-color: var(--kimono-line);
+  border-radius: 3px;
+  background: var(--kimono-paper-light);
+  box-shadow: none;
+}
+
+.pf-c-form-control:focus,
+.pf-v5-c-form-control:focus,
+input:focus {
+  border-color: var(--kimono-indigo);
+  box-shadow: 0 0 0 1px var(--kimono-indigo);
+  outline: none;
+}
+
+.pf-c-button.pf-m-primary,
+.pf-v5-c-button.pf-m-primary {
+  min-height: 48px;
+  border-radius: 3px;
+  color: var(--kimono-paper-light);
+  background: var(--kimono-sumi);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.pf-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:hover {
+  background: #3a3732;
+}
+
+.pf-c-button.pf-m-link,
+.pf-v5-c-button.pf-m-link,
+a {
+  color: var(--kimono-indigo);
+}
+
+ak-flow-executor::part(locale-select) {
+  color: var(--kimono-sumi-soft);
+}
+
+@media (max-width: 680px) {
+  body::before {
+    display: none;
+  }
+
+  .pf-c-background-image,
+  .pf-v5-c-background-image {
+    background-image: none !important;
+  }
+
+  .pf-c-login__main,
+  .pf-v5-c-login__main {
+    border-right: 0;
+    background: var(--kimono-paper-light);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .pf-c-login__main,
+  .pf-v5-c-login__main {
+    background: var(--kimono-paper-light);
+    backdrop-filter: none;
+  }
+}

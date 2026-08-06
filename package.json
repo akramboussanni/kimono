@@ -1,0 +1,27 @@
+{
+  "name": "kimono",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "build": "turbo build",
+    "cli:build": "sh scripts/build-cli.sh",
+    "cli:test": "go test ./...",
+    "dev": "turbo dev",
+    "identity:check": "node scripts/check-identity-config.mjs",
+    "identity:config": "docker compose --env-file infra/compose/authentik/.env -f infra/compose/authentik/compose.yml config",
+    "identity:logs": "docker compose --env-file infra/compose/authentik/.env -f infra/compose/authentik/compose.yml logs -f server worker",
+    "identity:up": "docker compose --env-file infra/compose/authentik/.env -f infra/compose/authentik/compose.yml up -d",
+    "identity:down": "docker compose --env-file infra/compose/authentik/.env -f infra/compose/authentik/compose.yml down",
+    "server:config": "docker compose --env-file infra/compose/server/.env -f infra/compose/server/compose.yml config",
+    "server:logs": "docker compose --env-file infra/compose/server/.env -f infra/compose/server/compose.yml logs -f authentik-server authentik-worker headscale caddy",
+    "server:up": "docker compose --env-file infra/compose/server/.env -f infra/compose/server/compose.yml up -d",
+    "server:down": "docker compose --env-file infra/compose/server/.env -f infra/compose/server/compose.yml down",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
+  }
+}
