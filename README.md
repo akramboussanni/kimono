@@ -37,6 +37,12 @@ Headscale, DERP, and Caddy appliance. On every application VM, `kimono node
 install` joins that private mesh with Kimono SSO and authorizes a per-VM
 Cloudflare Tunnel. See [`cli/README.md`](cli/README.md) for the full workflow.
 
+Interactive installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kimonoapps/kimono/main/scripts/install.sh | sudo sh
+```
+
 ## Development identity stack
 
 The supported local Authentik stack lives in `infra/compose/authentik`. Configure

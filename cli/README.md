@@ -21,8 +21,15 @@ The executable embeds the complete server appliance definition and Kimono
 login artwork. `kimono server install` extracts that private runtime state into
 `/var/lib/kimono`; cloning this repository on the server is not required.
 
-After a tagged GitHub release has been published, install and configure a main
-server in one command:
+Install the latest release and choose the VM role interactively:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kimonoapps/kimono/main/scripts/install.sh | sudo sh
+```
+
+The installer asks whether this is the main server, an application node, or a
+CLI-only installation, then collects the required settings. For unattended
+server installation, pass everything in one command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kimonoapps/kimono/main/scripts/install.sh | \
