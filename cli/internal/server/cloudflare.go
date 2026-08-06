@@ -23,10 +23,11 @@ import (
 const cloudflareAPI = "https://api.cloudflare.com/client/v4"
 
 type cloudflareConfig struct {
-	Token    string   `json:"token"`
-	ZoneID   string   `json:"zone_id"`
-	ZoneName string   `json:"zone_name"`
-	Records  []string `json:"records"`
+	Token     string   `json:"token"`
+	AccountID string   `json:"account_id,omitempty"`
+	ZoneID    string   `json:"zone_id"`
+	ZoneName  string   `json:"zone_name"`
+	Records   []string `json:"records"`
 }
 
 type cloudflareClient struct {
@@ -80,6 +81,7 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 	}
 	flags := flag.NewFlagSet("server cloudflare-ddns setup", flag.ContinueOnError)
 	zoneFlag := flags.String("zone", "", "Cloudflare DNS zone (normally example.com)")
+	accountIDFlag := flags.String("account-id", "", "Cloudflare account ID for an account-owned token")
 	tokenFile := flags.String("token-file", "", "read the API token from a root-only file")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -89,6 +91,7 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 		return err
 	}
 	token := ""
+	accountID := strings.TrimSpace(*accountIDFlag)
 	if *tokenFile != "" {
 		data, readErr := os.ReadFile(*tokenFile)
 		if readErr != nil {
@@ -97,6 +100,11 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 		token = strings.TrimSpace(string(data))
 	} else {
 		_, _ = fmt.Fprintln(m.Runner.Stdout, "Create a Cloudflare API token limited to this zone with Zone:Read and DNS:Edit permissions.")
+		_, _ = fmt.Fprintln(m.Runner.Stdout, "Account-owned tokens need the 32-character Account ID shown in the Cloudflare dashboard.")
+		accountID, err = readLineFromTTY("Cloudflare account ID (leave blank for a user-owned token): ")
+		if err != nil {
+			return err
+		}
 		token, err = readSecretFromTTY("Cloudflare API token: ")
 		if err != nil {
 			return err
@@ -105,15 +113,18 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 	if token == "" {
 		return errors.New("Cloudflare API token is required")
 	}
+	if accountID != "" && !validCloudflareID(accountID) {
+		return errors.New("Cloudflare account ID must be exactly 32 hexadecimal characters")
+	}
 	client := newCloudflareClient(token)
-	if err := client.verifyToken(); err != nil {
+	if err := client.verifyToken(accountID); err != nil {
 		return fmt.Errorf("verify Cloudflare token: %w", err)
 	}
-	zone, err := client.findZone(identityDomain, *zoneFlag)
+	zone, err := client.findZone(identityDomain, *zoneFlag, accountID)
 	if err != nil {
 		return err
 	}
-	config := cloudflareConfig{Token: token, ZoneID: zone.ID, ZoneName: zone.Name, Records: []string{identityDomain, meshDomain}}
+	config := cloudflareConfig{Token: token, AccountID: accountID, ZoneID: zone.ID, ZoneName: zone.Name, Records: []string{identityDomain, meshDomain}}
 	if err := system.WriteJSON(m.cloudflareConfigPath(), config, 0600); err != nil {
 		return err
 	}
@@ -231,11 +242,15 @@ func newCloudflareClient(token string) *cloudflareClient {
 	return &cloudflareClient{token: token, baseURL: cloudflareAPI, http: &http.Client{Timeout: 20 * time.Second}}
 }
 
-func (c *cloudflareClient) verifyToken() error {
+func (c *cloudflareClient) verifyToken(accountID string) error {
 	var result struct {
 		Status string `json:"status"`
 	}
-	if err := c.request(http.MethodGet, "/user/tokens/verify", nil, &result); err != nil {
+	path := "/user/tokens/verify"
+	if accountID != "" {
+		path = "/accounts/" + url.PathEscape(accountID) + "/tokens/verify"
+	}
+	if err := c.request(http.MethodGet, path, nil, &result); err != nil {
 		return err
 	}
 	if result.Status != "active" {
@@ -244,7 +259,7 @@ func (c *cloudflareClient) verifyToken() error {
 	return nil
 }
 
-func (c *cloudflareClient) findZone(hostname, requested string) (cloudflareZone, error) {
+func (c *cloudflareClient) findZone(hostname, requested, accountID string) (cloudflareZone, error) {
 	candidates := []string{}
 	if requested != "" {
 		candidates = append(candidates, strings.Trim(requested, "."))
@@ -256,7 +271,11 @@ func (c *cloudflareClient) findZone(hostname, requested string) (cloudflareZone,
 	}
 	for _, candidate := range candidates {
 		var zones []cloudflareZone
-		if err := c.request(http.MethodGet, "/zones?name="+url.QueryEscape(candidate), nil, &zones); err != nil {
+		query := url.Values{"name": []string{candidate}}
+		if accountID != "" {
+			query.Set("account.id", accountID)
+		}
+		if err := c.request(http.MethodGet, "/zones?"+query.Encode(), nil, &zones); err != nil {
 			return cloudflareZone{}, err
 		}
 		if len(zones) == 1 {
@@ -354,6 +373,33 @@ func readSecretFromTTY(label string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(value), nil
+}
+
+func readLineFromTTY(label string) (string, error) {
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		return "", errors.New("a terminal is required; use --account-id and --token-file for unattended setup")
+	}
+	defer tty.Close()
+	_, _ = fmt.Fprint(tty, label)
+	value, err := bufio.NewReader(tty).ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(value), nil
+}
+
+func validCloudflareID(value string) bool {
+	if len(value) != 32 {
+		return false
+	}
+	for _, character := range value {
+		if character >= '0' && character <= '9' || character >= 'a' && character <= 'f' || character >= 'A' && character <= 'F' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func (m *Manager) cloudflareConfigPath() string {

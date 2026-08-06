@@ -44,6 +44,31 @@ func TestUpsertARecordForcesDNSOnly(t *testing.T) {
 	}
 }
 
+func TestVerifyAccountTokenUsesAccountEndpoint(t *testing.T) {
+	const accountID = "0123456789abcdef0123456789abcdef"
+	client := newCloudflareClient("test-token")
+	client.http.Transport = roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.Path != "/client/v4/accounts/"+accountID+"/tokens/verify" {
+			t.Fatalf("unexpected verification path %s", request.URL.Path)
+		}
+		return jsonResponse(`{"success":true,"result":{"status":"active"},"errors":[]}`), nil
+	})
+	if err := client.verifyToken(accountID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestValidCloudflareID(t *testing.T) {
+	if !validCloudflareID("0123456789abcdef0123456789ABCDEF") {
+		t.Fatal("expected valid account ID")
+	}
+	for _, value := range []string{"", "short", "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"} {
+		if validCloudflareID(value) {
+			t.Fatalf("expected %q to be invalid", value)
+		}
+	}
+}
+
 func jsonResponse(body string) *http.Response {
 	return &http.Response{
 		StatusCode: http.StatusOK,

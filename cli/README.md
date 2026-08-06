@@ -82,6 +82,9 @@ from being issued.
 The interactive main-server installer can configure Dynamic DNS before the
 appliance starts. Create a Cloudflare API token from the **Edit zone DNS**
 template, restrict it to the Kimono zone, and paste it into the hidden prompt.
+For an account-owned token, enter the 32-character Cloudflare Account ID when
+prompted; leave it blank for a user-owned token. Kimono verifies each token
+against the appropriate Cloudflare endpoint.
 Kimono immediately creates or updates the identity and mesh A records as
 DNS-only, stores the token at `/var/lib/kimono/cloudflare-ddns.json` with mode
 `0600`, and enables a systemd timer that checks every five minutes.
@@ -96,7 +99,8 @@ sudo kimono server cloudflare-ddns remove
 ```
 
 For unattended setup, put only the token in a root-readable file and use
-`setup --token-file /path/to/token --zone example.com`. Do not put API tokens
+`setup --token-file /path/to/token --account-id ID --zone example.com`. Omit
+`--account-id` for a user-owned token. Do not put API tokens
 directly in command arguments or shell history.
 
 ## Application VM
