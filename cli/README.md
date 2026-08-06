@@ -77,7 +77,9 @@ sudo kimono server start
 
 `server doctor` repeats the public DNS preflight and shows container health.
 `server repair` safely restores the embedded appliance files and expected bind
-mount permissions without deleting volumes or regenerating secrets.
+mount permissions without deleting volumes or regenerating secrets. It also
+creates and applies the Kimono Authentik blueprint instance explicitly instead
+of depending solely on background file discovery.
 Forced reconfiguration also preserves all existing persistent secrets; it only
 changes the explicitly supplied settings.
 Advanced private-network or split-DNS deployments can bypass the guard with

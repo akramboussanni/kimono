@@ -182,7 +182,10 @@ KIMONO_MARK_ASSET_PATH=%s
 	} else {
 		_, _ = fmt.Fprintln(m.Runner.Stdout, "WARNING: DNS verification skipped; HTTPS certificates may fail.")
 	}
-	return m.compose("up", "-d", "--remove-orphans")
+	if err := m.compose("up", "-d", "--remove-orphans"); err != nil {
+		return err
+	}
+	return m.bootstrapBlueprint()
 }
 
 func (m *Manager) start(args []string) error {
@@ -283,7 +286,19 @@ func (m *Manager) repair() error {
 		return err
 	}
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "Repaired embedded appliance files and container-readable permissions.")
-	return m.compose("up", "-d", "--remove-orphans")
+	if err := m.compose("up", "-d", "--remove-orphans"); err != nil {
+		return err
+	}
+	return m.bootstrapBlueprint()
+}
+
+func (m *Manager) bootstrapBlueprint() error {
+	command := `from authentik.blueprints.v1.tasks import blueprints_find, check_blueprint_v1_file; [check_blueprint_v1_file(blueprint) for blueprint in blueprints_find() if blueprint.path == "kimono/kimono-headscale.yaml"]`
+	if err := m.Runner.Run("docker", "exec", "kimono-server-authentik-worker-1", "ak", "shell", "-c", command); err != nil {
+		return fmt.Errorf("create Kimono Authentik blueprint instance: %w", err)
+	}
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "Kimono Authentik blueprint discovered and queued for application.")
+	return nil
 }
 
 func (m *Manager) logs(args []string) error {
