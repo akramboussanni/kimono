@@ -18,6 +18,11 @@
 	}
 }
 
+{$KIMONO_PORTAL_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy portal:3000
+}
+
 http://{$MESH_DOMAIN} {
 	handle /generate_204 {
 		respond 204

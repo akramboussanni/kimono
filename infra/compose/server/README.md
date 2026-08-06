@@ -3,6 +3,7 @@
 This Compose project runs the private-network control plane for Kimono:
 
 - Authentik provides Kimono SSO.
+- Kimono Portal provides the household application home screen.
 - Headscale coordinates the WireGuard mesh and enrolls devices through OIDC.
 - Headscale's embedded DERP/STUN service relays encrypted traffic when peers
   cannot connect directly.
@@ -16,10 +17,11 @@ own Cloudflare login and Cloudflare Tunnel through the Kimono CLI.
 - A Linux VM with Docker Engine and Docker Compose v2
 - Public TCP ports 80 and 443
 - Public UDP port 3478
-- Two DNS records pointing directly to the VM, for example:
+- Three DNS records pointing directly to the VM, for example:
 
   - `accounts.example.com`
   - `mesh.example.com`
+  - `kimono.example.com` (or an apex/hostname chosen during setup)
 
 The mesh record must be DNS-only. Do not place Headscale behind a Cloudflare
 Tunnel or enable Cloudflare's HTTP proxy for this record; the Tailscale control

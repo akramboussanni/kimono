@@ -86,7 +86,7 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	identityDomain, meshDomain, err := m.configuredDomains()
+	identityDomain, meshDomain, portalDomain, err := m.configuredDomains()
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 	if err != nil {
 		return err
 	}
-	config := cloudflareConfig{Token: token, AccountID: accountID, ZoneID: zone.ID, ZoneName: zone.Name, Records: []string{identityDomain, meshDomain}}
+	config := cloudflareConfig{Token: token, AccountID: accountID, ZoneID: zone.ID, ZoneName: zone.Name, Records: []string{identityDomain, meshDomain, portalDomain}}
 	if err := system.WriteJSON(m.cloudflareConfigPath(), config, 0600); err != nil {
 		return err
 	}

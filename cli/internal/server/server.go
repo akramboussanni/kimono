@@ -62,6 +62,7 @@ func (m *Manager) install(args []string) error {
 	domain := flags.String("domain", "", "base public domain (for example, example.com)")
 	identityDomain := flags.String("identity-domain", "", "Authentik hostname")
 	meshDomain := flags.String("mesh-domain", "", "Headscale hostname")
+	portalDomain := flags.String("portal-domain", "", "Kimono Portal hostname")
 	email := flags.String("email", "", "ACME account email")
 	magicDNS := flags.String("magic-dns", "kimono.internal", "private MagicDNS suffix")
 	noStart := flags.Bool("no-start", false, "write configuration without starting services")
@@ -92,10 +93,13 @@ func (m *Manager) install(args []string) error {
 	if *meshDomain == "" && *domain != "" {
 		*meshDomain = "mesh." + strings.TrimPrefix(*domain, ".")
 	}
+	if *portalDomain == "" && *domain != "" {
+		*portalDomain = "kimono." + strings.TrimPrefix(*domain, ".")
+	}
 	if *email == "" {
 		*email = prompt(reader, m.Runner.Stdout, "Certificate email", "")
 	}
-	for name, value := range map[string]string{"identity domain": *identityDomain, "mesh domain": *meshDomain, "email": *email, "MagicDNS domain": *magicDNS} {
+	for name, value := range map[string]string{"identity domain": *identityDomain, "mesh domain": *meshDomain, "portal domain": *portalDomain, "email": *email, "MagicDNS domain": *magicDNS} {
 		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("%s is required", name)
 		}
@@ -119,8 +123,17 @@ func (m *Manager) install(args []string) error {
 	if err != nil {
 		return err
 	}
+	portalOIDCSecret, err := preservedOrRandom(existingEnvironment, "KIMONO_PORTAL_OIDC_CLIENT_SECRET", func() (string, error) { return system.RandomHex(32) })
+	if err != nil {
+		return err
+	}
+	portalSessionSecret, err := preservedOrRandom(existingEnvironment, "KIMONO_PORTAL_SESSION_SECRET", func() (string, error) { return system.RandomBase64(48) })
+	if err != nil {
+		return err
+	}
 	env := fmt.Sprintf(`AUTHENTIK_DOMAIN=%s
 MESH_DOMAIN=%s
+KIMONO_PORTAL_DOMAIN=%s
 MAGIC_DNS_DOMAIN=%s
 ACME_EMAIL=%s
 
@@ -139,23 +152,29 @@ KIMONO_HEADSCALE_OIDC_REDIRECT_URI=https://%s/oidc/callback
 KIMONO_HEADSCALE_OIDC_ISSUER=https://%s/application/o/kimono-headscale/
 HEADSCALE_NODE_EXPIRY=180d
 
+KIMONO_PORTAL_OIDC_CLIENT_ID=kimono-portal
+KIMONO_PORTAL_OIDC_CLIENT_SECRET=%s
+KIMONO_PORTAL_OIDC_REDIRECT_URI=https://%s/api/auth/callback/authentik
+KIMONO_PORTAL_SESSION_SECRET=%s
+KIMONO_PORTAL_TAG=latest
+
 KIMONO_SAKURA_ASSET_PATH=%s
 KIMONO_MARK_ASSET_PATH=%s
-`, *identityDomain, *meshDomain, *magicDNS, *email, pgPass, authSecret, oidcSecret, *meshDomain, *identityDomain,
+`, *identityDomain, *meshDomain, *portalDomain, *magicDNS, *email, pgPass, authSecret, oidcSecret, *meshDomain, *identityDomain, portalOIDCSecret, *portalDomain, portalSessionSecret,
 		filepath.Join(m.serverDir(), "assets", "sakura-branch-v2.png"), filepath.Join(m.serverDir(), "assets", "kimono-sakura-mark.svg"))
 	if err := os.WriteFile(m.envPath(), []byte(env), 0600); err != nil {
 		return err
 	}
 
 	_, _ = fmt.Fprintf(m.Runner.Stdout, "\nKimono server configured in %s\n", m.serverDir())
-	_, _ = fmt.Fprintf(m.Runner.Stdout, "Identity: https://%s\nMesh:     https://%s\n\n", *identityDomain, *meshDomain)
+	_, _ = fmt.Fprintf(m.Runner.Stdout, "Portal:   https://%s\nIdentity: https://%s\nMesh:     https://%s\n\n", *portalDomain, *identityDomain, *meshDomain)
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "Create DNS A records for both names pointing directly to this VM's public IPv4.")
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "The mesh record must not use the Cloudflare proxy.")
 	if *noStart {
 		return nil
 	}
 	if !*skipDNSCheck {
-		if err := m.checkDNS(*identityDomain, *meshDomain); err != nil {
+		if err := m.checkDNS(*identityDomain, *meshDomain, *portalDomain); err != nil {
 			_, _ = fmt.Fprintln(m.Runner.Stdout, "\nKimono has been configured but was not started.")
 			_, _ = fmt.Fprintln(m.Runner.Stdout, "Fix the DNS records, wait for propagation, then run: sudo kimono server start")
 			return err
@@ -173,11 +192,11 @@ func (m *Manager) start(args []string) error {
 		return err
 	}
 	if !*skipDNSCheck {
-		identityDomain, meshDomain, err := m.configuredDomains()
+		identityDomain, meshDomain, portalDomain, err := m.configuredDomains()
 		if err != nil {
 			return err
 		}
-		if err := m.checkDNS(identityDomain, meshDomain); err != nil {
+		if err := m.checkDNS(identityDomain, meshDomain, portalDomain); err != nil {
 			return fmt.Errorf("DNS verification failed; fix DNS or use --skip-dns-check for an advanced setup: %w", err)
 		}
 	}
@@ -185,11 +204,11 @@ func (m *Manager) start(args []string) error {
 }
 
 func (m *Manager) doctor() error {
-	identityDomain, meshDomain, err := m.configuredDomains()
+	identityDomain, meshDomain, portalDomain, err := m.configuredDomains()
 	if err != nil {
 		return err
 	}
-	if err := m.checkDNS(identityDomain, meshDomain); err != nil {
+	if err := m.checkDNS(identityDomain, meshDomain, portalDomain); err != nil {
 		return err
 	}
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "\nDNS is ready. Checking containers…")

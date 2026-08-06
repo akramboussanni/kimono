@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (m *Manager) checkDNS(identityDomain, meshDomain string) error {
+func (m *Manager) checkDNS(identityDomain, meshDomain, portalDomain string) error {
 	if m.Runner.DryRun {
 		_, _ = fmt.Fprintln(m.Runner.Stdout, "+ verify public IPv4 and DNS A records")
 		return nil
@@ -25,7 +25,7 @@ func (m *Manager) checkDNS(identityDomain, meshDomain string) error {
 	}
 	_, _ = fmt.Fprintf(m.Runner.Stdout, "\nDNS preflight\nPublic IPv4: %s\n", publicIP)
 	failed := false
-	for _, domain := range []string{identityDomain, meshDomain} {
+	for _, domain := range []string{identityDomain, meshDomain, portalDomain} {
 		addresses, lookupErr := lookupIPv4(domain)
 		if lookupErr != nil {
 			_, _ = fmt.Fprintf(m.Runner.Stdout, "✗ %s has no usable A record (%v)\n", domain, lookupErr)
@@ -103,15 +103,15 @@ func containsAddress(addresses []string, expected string) bool {
 	return false
 }
 
-func (m *Manager) configuredDomains() (string, string, error) {
+func (m *Manager) configuredDomains() (string, string, string, error) {
 	values, err := readServerEnvironment(m.envPath())
 	if err != nil {
-		return "", "", fmt.Errorf("Kimono server is not installed; run `sudo kimono server install`: %w", err)
+		return "", "", "", fmt.Errorf("Kimono server is not installed; run `sudo kimono server install`: %w", err)
 	}
-	if values["AUTHENTIK_DOMAIN"] == "" || values["MESH_DOMAIN"] == "" {
-		return "", "", errors.New("server configuration is missing AUTHENTIK_DOMAIN or MESH_DOMAIN")
+	if values["AUTHENTIK_DOMAIN"] == "" || values["MESH_DOMAIN"] == "" || values["KIMONO_PORTAL_DOMAIN"] == "" {
+		return "", "", "", errors.New("server configuration is missing a required public domain")
 	}
-	return values["AUTHENTIK_DOMAIN"], values["MESH_DOMAIN"], nil
+	return values["AUTHENTIK_DOMAIN"], values["MESH_DOMAIN"], values["KIMONO_PORTAL_DOMAIN"], nil
 }
 
 func readServerEnvironment(path string) (map[string]string, error) {

@@ -28,7 +28,9 @@ curl -fsSL https://raw.githubusercontent.com/kimonoapps/kimono/main/scripts/inst
 ```
 
 The installer asks whether this is the main server, an application node, or a
-CLI-only installation, then collects the required settings. For unattended
+CLI-only installation, then collects the required settings. Main-server setup
+also asks where the Portal should live: use `@` for the apex domain, a label
+such as `www` or `kimono`, or a complete hostname. For unattended
 server installation, pass everything in one command:
 
 ```bash

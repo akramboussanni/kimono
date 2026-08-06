@@ -32,8 +32,8 @@ pnpm cli:build
 sudo install -m 0755 dist/kimono /usr/local/bin/kimono
 ```
 
-On the main VM, `kimono server install` deploys the embedded Authentik,
-Headscale, DERP, and Caddy appliance. On every application VM, `kimono node
+On the main VM, `kimono server install` deploys the Kimono Portal plus embedded
+Authentik, Headscale, DERP, and Caddy appliance. On every application VM, `kimono node
 install` joins that private mesh with Kimono SSO and authorizes a per-VM
 Cloudflare Tunnel. See [`cli/README.md`](cli/README.md) for the full workflow.
 
