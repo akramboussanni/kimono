@@ -1,0 +1,43 @@
+{
+	email {$ACME_EMAIL}
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+{$AUTHENTIK_DOMAIN} {
+	encode zstd gzip
+
+	handle_path /static/kimono/* {
+		root * /srv/kimono-brand
+		file_server
+	}
+
+	handle {
+		reverse_proxy authentik-server:9000
+	}
+}
+
+{$KIMONO_PORTAL_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy portal:3000
+}
+
+http://{$MESH_DOMAIN} {
+	handle /generate_204 {
+		respond 204
+	}
+
+	redir https://{host}{uri}
+}
+
+{$MESH_DOMAIN} {
+	handle /generate_204 {
+		respond 204
+	}
+
+	reverse_proxy headscale:8080 {
+		header_up True-Client-IP {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+}

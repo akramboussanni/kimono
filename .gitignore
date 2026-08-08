@@ -1,0 +1,10 @@
+node_modules/
+.agents/
+.codex/
+.next/
+.turbo/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+pnpm-debug.log*

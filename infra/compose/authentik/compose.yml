@@ -1,0 +1,63 @@
+name: kimono-identity
+
+services:
+  postgresql:
+    image: docker.io/library/postgres:16-alpine
+    restart: unless-stopped
+    env_file: ${AUTHENTIK_ENV_FILE:-.env}
+    environment:
+      POSTGRES_DB: ${PG_DB:-authentik}
+      POSTGRES_PASSWORD: ${PG_PASS:?database password required}
+      POSTGRES_USER: ${PG_USER:-authentik}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - authentik_database:/var/lib/postgresql/data
+
+  server:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.5.6}
+    command: server
+    restart: unless-stopped
+    env_file: ${AUTHENTIK_ENV_FILE:-.env}
+    environment: &authentik_environment
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    ports:
+      - "${COMPOSE_PORT_HTTP:-9000}:9000"
+      - "${COMPOSE_PORT_HTTPS:-9443}:9443"
+    shm_size: 512mb
+    volumes:
+      - authentik_data:/data
+      - ./custom-templates:/templates
+
+  worker:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.5.6}
+    command: worker
+    restart: unless-stopped
+    user: root
+    env_file: ${AUTHENTIK_ENV_FILE:-.env}
+    environment: *authentik_environment
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    shm_size: 512mb
+    volumes:
+      - authentik_data:/data
+      - ./blueprints:/blueprints/kimono
+      - ../server/authentik/blueprints/kimono.css:/blueprints/kimono/kimono.css:ro
+      - ./certs:/certs
+      - ./custom-templates:/templates
+
+volumes:
+  authentik_database:
+  authentik_data:
