@@ -95,8 +95,7 @@ if [ "$1" = "server" ]; then
   shift
   if [ "$#" -eq 0 ]; then
     domain=$(prompt "Public base domain (for example, kimonolabs.dev)")
-    portal_host=$(prompt "Kimono Portal name (@ for apex, a short label, or full hostname)" "kimono")
-    notes_host=$(prompt "Kimono Notes name (@ for apex, a short label, or full hostname)" "notes")
+    portal_host=$(prompt "Kimono Portal name (@ for apex, a short label, or full hostname)" "www")
     email=$(prompt "Certificate email")
     if [ -z "$domain" ] || [ -z "$email" ]; then
       echo "Domain and email are required." >&2
@@ -107,20 +106,15 @@ if [ "$1" = "server" ]; then
       *.*) portal_domain="$portal_host" ;;
       *) portal_domain="${portal_host}.${domain}" ;;
     esac
-    case "$notes_host" in
-      @) notes_domain="$domain" ;;
-      *.*) notes_domain="$notes_host" ;;
-      *) notes_domain="${notes_host}.${domain}" ;;
-    esac
     dynamic_dns=$(prompt "Configure Cloudflare Dynamic DNS? (y/N)" "n")
     case "$dynamic_dns" in
       y|Y|yes|YES)
-        "$install_path" server install --domain "$domain" --portal-domain "$portal_domain" --notes-domain "$notes_domain" --email "$email" --no-start
+        "$install_path" server install --domain "$domain" --portal-domain "$portal_domain" --email "$email" --no-start
         "$install_path" server cloudflare-ddns setup
         exec "$install_path" server start
         ;;
     esac
-    set -- --domain "$domain" --portal-domain "$portal_domain" --notes-domain "$notes_domain" --email "$email"
+    set -- --domain "$domain" --portal-domain "$portal_domain" --email "$email"
   fi
   exec "$install_path" server install "$@"
 fi
