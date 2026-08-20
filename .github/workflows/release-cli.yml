@@ -29,11 +29,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "${{ github.ref_name }}" --generate-notes dist/kimono_linux_amd64 dist/kimono_linux_arm64 dist/SHA256SUMS
+      # Images live under the kimonoapps organisation, which GITHUB_TOKEN cannot
+      # write to — its scope is this repository's owner. Publishing there needs
+      # a personal access token with write:packages, stored as GHCR_TOKEN.
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.GHCR_USERNAME || github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Publish Kimono Portal image
         run: |
           docker build -f Dockerfile.portal -t ghcr.io/kimonoapps/kimono-portal:${{ github.ref_name }} -t ghcr.io/kimonoapps/kimono-portal:latest .

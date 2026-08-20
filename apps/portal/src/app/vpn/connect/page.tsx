@@ -1,4 +1,4 @@
-import { Command, Reveal, Seal, Rows } from "@kimono/ui";
+import { Command, Reveal, Rows, Seal } from "@kimono/ui";
 import { auth } from "@/auth";
 import { AppShell } from "@/components/app-shell";
 import { VpnRooms } from "@/components/app-rooms";
@@ -14,8 +14,8 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
   const query = await searchParams;
   const mesh = settings.meshDomain || `mesh.${settings.baseDomain}`;
 
-  /* Adding your own device should not need anyone else, so the key is minted
-     for the person asking rather than by an administrator at a shell. */
+  /* Only a machine with no browser needs a key, and even then it is minted for
+     the person asking rather than by an administrator at a shell. */
   async function mintKey() {
     "use server";
     const current = await auth();
@@ -45,51 +45,58 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
       {query.error ? <p className="admin-notice error">{query.error}</p> : null}
 
       <Workspace>
-        <SectionHeading title="Your key" description="Every device joins with a single-use key, scoped to you." />
+        <SectionHeading
+          title="Add a device"
+          description="Install Tailscale, point it at your Kimono, and sign in with the account you are using now."
+        />
         <Panels>
-          <Panel
-            label="Key"
-            title={query.key ? "Ready to use" : "Create a key"}
-            wants={!query.key}
-            action={query.key ? undefined : <form action={mintKey}><Seal type="submit">Create a key</Seal></form>}
-          >
-            {query.key
-              ? <>
-                  <p>It works once and expires in thirty minutes. Take it to the device you are adding.</p>
-                  <Command>{query.key}</Command>
-                </>
-              : <p>Kimono mints it for your account — no administrator and no terminal.</p>}
-          </Panel>
-        </Panels>
-
-        <SectionHeading title="Add a device" description="Pick what you are adding. Only that one unfolds." />
-        <Panels>
-          <Panel label="Device" title="How to join">
+          <Panel label="Device" title="Sign in on the device">
+            <p>No key, no copying secrets around — the device asks Kimono who you are, the same way this page did.</p>
             <Rows>
-              <Reveal title="Phone" summary="iOS or Android, using the Tailscale app">
-                <p>Install <strong>Tailscale</strong>. Before signing in, open the account menu, choose a custom coordination server, and enter your mesh address.</p>
+              <Reveal title="Phone" summary="iOS or Android">
+                <p>Install <strong>Tailscale</strong>. Before signing in, open the account menu, choose a custom coordination server, and enter:</p>
                 <Command>{mesh}</Command>
                 <p>Sign in with your Kimono account. The phone appears under Devices within seconds.</p>
               </Reveal>
 
               <Reveal title="Laptop" summary="macOS, Windows or Linux desktop">
-                <p>Install Tailscale, then point it at this Kimono rather than Tailscale&rsquo;s own servers:</p>
-                <Command>{`tailscale login --login-server https://${mesh}`}</Command>
-              </Reveal>
-
-              <Reveal title="Server" summary="A machine Kimono should manage, like a home server or a Pi">
-                <p>Install Kimono on it, then join with the key above:</p>
-                <Command>{`curl -fsSL https://${settings.baseDomain}/install.sh | sudo sh\nsudo kimono node install`}</Command>
+                <p>Install Tailscale, then run this. A browser opens and you sign in with Kimono:</p>
+                <Command>{`tailscale up --login-server https://${mesh}`}</Command>
               </Reveal>
 
               <Reveal title="How this works" summary="Why no port needs opening">
                 <p>
-                  The mesh speaks the Tailscale protocol, but the coordination server is yours, at {mesh}. Both ends
-                  connect outward and meet in the middle, so nothing is opened on your router and nothing of yours
-                  passes through anyone else&rsquo;s infrastructure.
+                  The mesh speaks the Tailscale protocol, but the coordination server is yours, at {mesh}, and it
+                  checks your Kimono account before letting a device in. Both ends connect outward and meet in the
+                  middle, so nothing is opened on your router and nothing of yours passes through anyone
+                  else&rsquo;s infrastructure.
                 </p>
               </Reveal>
             </Rows>
+          </Panel>
+        </Panels>
+
+        <SectionHeading
+          title="A machine with no browser"
+          description="A headless server cannot open a sign-in page, so it joins with a key instead."
+        />
+        <Panels>
+          <Panel
+            label="Key"
+            title={query.key ? "Your key is ready" : "Only if you need one"}
+            wants={Boolean(query.key)}
+            action={query.key ? undefined : <form action={mintKey}><Seal tone="quiet" type="submit">Create a key</Seal></form>}
+          >
+            {query.key
+              ? <>
+                  <p>It works once and expires in thirty minutes. Take it to the machine you are adding.</p>
+                  <Command>{query.key}</Command>
+                </>
+              : <p>Most devices never need this. A server without a browser does.</p>}
+          </Panel>
+          <Panel label="Server" title="Joining a server">
+            <p>Install Kimono on it, then join with the key above:</p>
+            <Command>{`curl -fsSL https://${settings.baseDomain}/install.sh | sudo sh\nsudo kimono node install`}</Command>
           </Panel>
         </Panels>
       </Workspace>

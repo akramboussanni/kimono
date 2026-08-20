@@ -135,7 +135,12 @@ async function meshRequest(path: string, init?: RequestInit) {
     cache: "no-store",
     signal: AbortSignal.timeout(8000),
   });
-  if (!response.ok) throw new Error(`The mesh replied ${response.status} to ${path}.`);
+  if (!response.ok) {
+    /* Headscale explains itself in the body; swallowing it turns a one-line
+       fix into a guessing game. */
+    const detail = await response.text().catch(() => "");
+    throw new Error(`The mesh replied ${response.status} to ${path}${detail ? `: ${detail.slice(0, 200)}` : "."}`);
+  }
   return response.json() as Promise<Record<string, unknown>>;
 }
 
@@ -155,14 +160,20 @@ export async function createEnrolmentKey(person: { username: string; email?: str
     /* Headscale creates a user at first sign-in; a person adding their first
        device may not have one yet. */
     const listed = await meshRequest(`/api/v1/user?name=${encodeURIComponent(owner)}`);
-    const users = (listed.users as Array<{ name?: string }> | undefined) || [];
-    if (!users.some((user) => user.name === owner)) {
-      await meshRequest("/api/v1/user", { method: "POST", body: JSON.stringify({ name: owner }) });
+    const users = (listed.users as Array<{ id?: string; name?: string }> | undefined) || [];
+    let id = users.find((user) => user.name === owner)?.id;
+    if (!id) {
+      const created = await meshRequest("/api/v1/user", { method: "POST", body: JSON.stringify({ name: owner }) });
+      id = (created.user as { id?: string } | undefined)?.id;
     }
+    if (!id) return { error: "The mesh has no account for you yet. Sign in on a device once, then try again." };
+
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    /* The key is addressed to the user's id — Headscale stopped accepting a
+       name here, which is what the 400 was. */
     const minted = await meshRequest("/api/v1/preauthkey", {
       method: "POST",
-      body: JSON.stringify({ user: owner, reusable: false, ephemeral: false, expiration: expiresAt }),
+      body: JSON.stringify({ user: id, reusable: false, ephemeral: false, expiration: expiresAt }),
     });
     const preAuthKey = minted.preAuthKey as { key?: string; expiration?: string } | undefined;
     if (!preAuthKey?.key) return { error: "The mesh did not return a key." };
