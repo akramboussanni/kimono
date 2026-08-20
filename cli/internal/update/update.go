@@ -18,7 +18,7 @@ import (
 	"github.com/kimonoapps/kimono/cli/internal/system"
 )
 
-const defaultRepository = "kimonoapps/kimono"
+const defaultRepository = "akramboussanni/kimono"
 
 // Manager performs a self-update followed by an appliance update.
 type Manager struct {
