@@ -1,0 +1,44 @@
+/* ─────────────────────────────────────────────────────────────
+   組 Kumi — composition. One frame per region; frames never nest;
+   edges are shared, never doubled; a hairline never touches a frame.
+   ───────────────────────────────────────────────────────────── */
+
+.k-tray {
+  border: var(--k-frame) solid var(--k-ink);
+  background: var(--k-sheet);
+  box-shadow: 6px 6px 0 rgba(36, 34, 31, .12);
+}
+
+.k-tray > * + * { border-top: var(--k-rule) solid var(--k-ink); }
+
+.k-compartment {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.k-compartment > .k-tab {
+  display: grid;
+  place-items: center;
+  padding: var(--k-ma-5) 0;
+  border-right: var(--k-rule) solid var(--k-ink);
+  background: var(--k-wood-pale);
+}
+
+.k-compartment > .k-tab > * {
+  margin: 0;
+  color: var(--k-ink);
+  font: 600 15px/1 var(--k-display);
+  letter-spacing: .34em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}
+
+/* A compartment that wants something from you, and only then. */
+.k-compartment.k-wants > .k-tab { background: var(--k-accent); }
+.k-compartment.k-wants > .k-tab > * { color: var(--k-sheet); }
+
+.k-compartment > .k-body { padding: var(--k-ma-4) var(--k-ma-5); }
+
+.k-sheet { border: var(--k-hairline) solid var(--k-hair); background: var(--k-sheet); }
+.k-divide + .k-divide { border-top: var(--k-hairline) solid var(--k-hair); }

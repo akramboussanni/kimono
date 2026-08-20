@@ -1,0 +1,158 @@
+<meta charset="utf-8">
+<title>Dashboard Directions</title>
+<script src="sakura.js"></script>
+<style>
+  :root {
+    --ink:#24221f; --paper:#fff8f5; --face:#fffdfb; --wood:#d8b77f; --wood-pale:#ead2aa;
+    --accent:#a84d63; --accent-pale:#f2cbd2; --hair:#ded0be; --faint:#8b6d67; --moss:#5c7150;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:44px clamp(20px,5vw,64px) 130px; color:var(--ink); background:var(--paper); font-family:var(--ui); }
+  .masthead h1 { margin:0 0 8px; font-size:15px; font-weight:700; }
+  .masthead p { max-width:72ch; margin:0 0 46px; color:var(--faint); font-size:13px; line-height:1.55; }
+  .pat { padding-top:36px; margin-top:36px; border-top:1px solid var(--hair); }
+  .pat:first-of-type { border-top:0; margin-top:0; padding-top:0; }
+  .pat h2 { margin:0 0 7px; font-size:21px; font-weight:650; }
+  .pat h2 .kanji { margin-right:11px; font-family:var(--serif); font-size:26px; }
+  .pat h2 em { color:var(--accent); font-style:normal; font-weight:500; }
+  .blurb { max-width:74ch; margin:0 0 28px; color:var(--faint); font-size:13px; line-height:1.6; }
+  .cap { margin:12px 0 30px; color:var(--faint); font-size:12px; }
+
+  /* 屏風 — a folding screen: panels of uneven width, hinged, catching light differently. */
+  .byobu { display:flex; max-width:900px; border:3px solid var(--ink); background:var(--ink); }
+  .leaf { flex:var(--w,1); padding:20px 18px; background:var(--face); border-right:3px solid var(--ink); }
+  .leaf:last-child { border-right:0; }
+  .leaf:nth-child(even) { background:color-mix(in srgb, var(--face) 88%, var(--ink)); }
+  .leaf h3 { margin:0 0 14px; font-size:10px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  .leaf .big { display:block; font:600 30px/1 var(--serif); font-variant-numeric:tabular-nums; }
+  .leaf .sub { display:block; margin-top:7px; color:var(--faint); font-size:11px; line-height:1.4; }
+  .apps { display:flex; flex-wrap:wrap; gap:9px; }
+  .apps .sakura { width:38px; height:38px; }
+  .apps .off { opacity:.35; }
+  .meter { height:12px; margin:4px 0 9px; border:2px solid var(--ink); background:var(--face); }
+  .meter i { display:block; height:100%; background:var(--accent-pale); box-shadow:inset -2px 0 var(--accent); }
+
+  /* 枯山水 — raked gravel. Everything settled is just rake lines; trouble is a stone. */
+  .garden { position:relative; max-width:900px; height:210px; overflow:hidden; border:3px solid var(--ink);
+    background-color:var(--face);
+    background-image:repeating-linear-gradient(90deg, var(--hair) 0 1.5px, transparent 1.5px 15px); }
+  .garden .quiet { position:absolute; right:20px; bottom:16px; color:var(--faint); font-size:12px; }
+  .stone { position:absolute; display:grid; place-items:center; }
+  .stone .ring { position:absolute; width:230px; height:170px; border-radius:50%;
+    background:repeating-radial-gradient(ellipse at 50% 50%, transparent 0 16px, var(--hair) 16px 17.5px, transparent 17.5px 34px); }
+  .stone .rock { position:relative; z-index:2; width:104px; padding:13px 15px; border:3px solid var(--ink);
+    border-radius:44% 56% 48% 52% / 52% 46% 54% 48%; background:var(--ink); color:var(--face); text-align:center; }
+  .stone .rock b { display:block; font-size:12px; line-height:1.25; }
+  .stone .rock small { display:block; margin-top:4px; color:var(--accent-pale); font-size:10px; }
+  .stone.warn .rock { background:var(--accent); border-color:var(--ink); }
+
+  /* 床の間 — the alcove: one thing raised and lit, everything else stands back. */
+  .tokonoma { display:flex; max-width:900px; border:3px solid var(--ink); background:var(--face); }
+  .alcove { flex:1.35; position:relative; padding:30px 30px 0; background:color-mix(in srgb, var(--face) 84%, var(--ink)); }
+  .scroll { max-width:330px; margin:0 auto; }
+  .scroll .rod { height:11px; border-radius:3px; background:var(--wood); }
+  .scroll .silk { padding:22px 22px 26px; border-left:2px solid var(--hair); border-right:2px solid var(--hair); background:var(--face); text-align:center; }
+  .scroll .eyebrow { margin:0 0 9px; color:var(--accent); font:11px var(--mono); }
+  .scroll .line { margin:0; font:600 26px/1.22 var(--serif); }
+  .scroll .foot { margin:12px 0 0; color:var(--faint); font-size:12px; }
+  .dais { display:flex; align-items:center; gap:14px; margin:22px -30px 0; padding:14px 30px; background:var(--wood); }
+  .dais .sakura { width:42px; height:42px; }
+  .dais b { font-size:13px; } .dais small { display:block; margin-top:3px; color:#6a4f34; font-size:11px; }
+  .aside { flex:1; display:grid; align-content:start; }
+  .aside div { display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding:15px 22px; border-bottom:1px solid var(--hair); }
+  .aside div:last-child { border-bottom:0; }
+  .aside b { font-size:12.5px; font-weight:600; }
+  .aside span { color:var(--faint); font:12px var(--mono); font-variant-numeric:tabular-nums; }
+</style>
+
+<div class="masthead">
+  <h1>Dashboards — sheet 07</h1>
+  <p>Three ways to show the state of the house at once. They disagree about something worth settling: whether an overview should show everything, show only what is wrong, or show one thing at a time.</p>
+</div>
+
+<section class="pat">
+  <h2><span class="kanji">屏風</span>Byōbu <em>— a panel per region</em></h2>
+  <p class="blurb">A folding screen has leaves of uneven width, hinged, each catching the light differently. The uneven widths are the point: a dashboard where every tile is the same size is claiming everything matters equally, which is never true.</p>
+  <div class="byobu">
+    <div class="leaf" style="--w:1.5">
+      <h3>Apps</h3>
+      <div class="apps">
+        <span data-glyph="notes"></span><span data-glyph="photos"></span>
+        <span data-glyph="recipes"></span><span data-glyph="outline" class="off"></span>
+      </div>
+      <span class="sub">3 running · 1 needs attention</span>
+    </div>
+    <div class="leaf">
+      <h3>Storage</h3>
+      <span class="big">412<small style="font-size:14px"> GB</small></span>
+      <div class="meter"><i style="width:41%"></i></div>
+      <span class="sub">of 1 TB on the cupboard drive</span>
+    </div>
+    <div class="leaf">
+      <h3>Backup</h3>
+      <span class="big">09:14</span>
+      <span class="sub">this morning · 1.2 GB</span>
+    </div>
+    <div class="leaf" style="--w:.8">
+      <h3>Reach</h3>
+      <span class="big">1</span>
+      <span class="sub">public address via Cloudflare</span>
+    </div>
+  </div>
+  <p class="cap">Everything at once. Scans fast, but it looks identical on a good day and a bad one.</p>
+</section>
+
+<section class="pat">
+  <h2><span class="kanji">枯山水</span>Karesansui <em>— only what needs attending to</em></h2>
+  <p class="blurb">A dry garden is raked gravel with a few placed stones. Nothing settled is drawn at all — a healthy house is an empty, raked field. A stone appears only where something wants you, and the rake rings around it are how you find it from across the room.</p>
+  <div class="garden">
+    <div class="stone warn" style="left:150px; top:22px">
+      <span class="ring"></span>
+      <span class="rock"><b>Outline</b><small>tunnel is gone</small></span>
+    </div>
+    <span class="quiet">everything else is raked flat</span>
+  </div>
+  <p class="cap">The same garden with nothing wrong is empty gravel — which is the whole argument.</p>
+  <div class="garden"><span class="quiet">all quiet · 3 apps running · backed up 09:14</span></div>
+</section>
+
+<section class="pat">
+  <h2><span class="kanji">床の間</span>Tokonoma <em>— one thing, raised</em></h2>
+  <p class="blurb">The alcove holds a single scroll and a single flower, changed with the season. Everything else in the room stands back. As a dashboard it means: name the one thing that matters today, and let the rest be a quiet list you can read if you want to.</p>
+  <div class="tokonoma">
+    <div class="alcove">
+      <div class="scroll">
+        <div class="rod"></div>
+        <div class="silk">
+          <p class="eyebrow">12 Mar · 09:14</p>
+          <p class="line">The house backed itself up before anyone was awake.</p>
+          <p class="foot">1.2 GB to the cupboard drive</p>
+        </div>
+        <div class="rod"></div>
+      </div>
+      <div class="dais">
+        <span data-glyph="outline"></span>
+        <b>Outline needs a tunnel<small>the old one was removed on 09 Mar</small></b>
+      </div>
+    </div>
+    <div class="aside">
+      <div><b>Apps running</b><span>3 of 4</span></div>
+      <div><b>Storage used</b><span>412 GB / 1 TB</span></div>
+      <div><b>Public addresses</b><span>1</span></div>
+      <div><b>Uptime</b><span>41 days</span></div>
+      <div><b>Last deploy</b><span>11 Mar 21:02</span></div>
+    </div>
+  </div>
+  <p class="cap">Reads like a sentence, not a readout. Costs a decision every day about what belongs in the alcove.</p>
+</section>
+
+<script>
+  addEventListener("DOMContentLoaded", () => {
+    for (const el of document.querySelectorAll("[data-glyph]")) {
+      el.outerHTML = Sakura.app(Sakura.glyphs[el.dataset.glyph], el.className, "");
+    }
+  });
+</script>

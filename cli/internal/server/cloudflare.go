@@ -135,7 +135,7 @@ func (m *Manager) setupCloudflareDDNS(args []string) error {
 		return err
 	}
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "Cloudflare Dynamic DNS is active and will check every five minutes.")
-	_, _ = fmt.Fprintln(m.Runner.Stdout, "Both Kimono records are managed as DNS-only A records.")
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "Kimono's own records are managed as DNS-only A records; published apps use tunnel routes.")
 	return nil
 }
 

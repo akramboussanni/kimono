@@ -1,0 +1,491 @@
+<meta charset="utf-8">
+<script src="sakura.js"></script>
+<title>Button Specimens</title>
+<style>
+  :root {
+    /* Kimono's own tokens: sumi ink, paper, and the ema plaque's wood. */
+    --ink: #24221f;
+    --ink-deep: #2b1d22;
+    --paper: #fff8f5;
+    --face: #fffdfb;
+    --beige: #ead2aa;
+    --beige-deep: #d8b77f;
+    --faint: #8b6d67;
+    --hair: #ded0be;
+    --moss: #5c7150;
+    --accent: #a84d63;
+    --accent-pale: #f2cbd2;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 44px clamp(20px, 5vw, 64px) 120px;
+    color: var(--ink);
+    background: var(--paper);
+    font-family: var(--ui);
+  }
+
+  .masthead { margin-bottom: 52px; }
+  .masthead h1 { margin: 0 0 8px; font-size: 15px; font-weight: 700; letter-spacing: .02em; }
+  .masthead p { max-width: 60ch; margin: 0; color: var(--faint); font-size: 13px; line-height: 1.5; }
+
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(262px, 1fr));
+    gap: 56px 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .spec { display: flex; flex-direction: column; gap: 0; }
+  .stage { min-height: 132px; display: flex; align-items: center; justify-content: center; padding: 8px 0 18px; }
+  .name { margin: 0; font-size: 13px; font-weight: 650; }
+  .name .num { margin-right: 9px; color: var(--faint); font-variant-numeric: tabular-nums; font-weight: 500; }
+  .hint { margin: 5px 0 0; color: var(--faint); font-size: 12px; line-height: 1.45; }
+  .rule { margin: 76px 0 40px; padding-top: 34px; border-top: 1px solid var(--hair); }
+  .rule h2 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+  .rule p { max-width: 60ch; margin: 0; color: var(--faint); font-size: 13px; line-height: 1.5; }
+
+  button { color: inherit; font-family: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+  /* 01 Hanko — press leaves an impression that stays a moment. */
+  .b-hanko { position: relative; width: 84px; height: 84px; border: 2px solid var(--ink); background: var(--face); font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; transition: transform 90ms ease; }
+  .b-hanko::before { position: absolute; inset: 4px; border: 1px solid var(--ink); content: ""; opacity: .45; }
+  .b-hanko:active { transform: translateY(3px) scale(.965); }
+  .stamp-mark { position: absolute; width: 84px; height: 84px; border: 2px solid var(--ink); pointer-events: none; animation: stamp 1500ms ease-out forwards; }
+  .stamp-mark::before { position: absolute; inset: 4px; border: 1px solid var(--ink); content: ""; }
+  @keyframes stamp { 0% { opacity: .5; transform: scale(1); } 100% { opacity: 0; transform: scale(1.015); } }
+
+  /* 02 Noren — the shop curtain splits the label; you part it to pass through. */
+  .b-noren { position: relative; width: 172px; height: 78px; display: flex; align-items: stretch; padding: 0; border: 0; background: none; }
+  .b-noren .pn { position: relative; width: 50%; height: 100%; overflow: hidden; background: var(--ink); transition: transform 260ms cubic-bezier(.2,.9,.25,1); }
+  .b-noren .pn::after { position: absolute; top: 0; right: 0; left: 0; height: 9px; content: ""; background: var(--beige); opacity: .38; }
+  .b-noren .t { position: absolute; top: 50%; width: 172px; color: var(--face); font-size: 14px; font-weight: 650; letter-spacing: .04em; text-align: center; transform: translateY(-50%); }
+  .b-noren .pn.l .t { left: 0; }
+  .b-noren .pn.r .t { left: -86px; }
+  .b-noren:hover .pn.l, .b-noren:focus-visible .pn.l { transform: translateX(-11px); }
+  .b-noren:hover .pn.r, .b-noren:focus-visible .pn.r { transform: translateX(11px); }
+
+  /* 03 Shoji — the paper screen slides back off the label. */
+  .b-shoji { position: relative; width: 172px; height: 78px; overflow: hidden; border: 2px solid var(--ink); background: var(--accent-pale); color: var(--ink); font-size: 14px; font-weight: 650; transition: background-color 400ms ease; }
+  .b-shoji.open { background: var(--accent); }
+  .b-shoji .scr { position: absolute; top: 0; bottom: 0; width: 50%; background-color: var(--face); background-image: linear-gradient(90deg, var(--hair) 0 1px, transparent 1px), linear-gradient(var(--hair) 0 1px, transparent 1px); background-size: 36px 33px; opacity: .96; transition: transform 300ms cubic-bezier(.2,.9,.25,1); }
+  .b-shoji .scr.l { left: 0; border-right: 1px solid var(--ink); }
+  .b-shoji .scr.r { right: 0; border-left: 1px solid var(--ink); }
+  .b-shoji.peek .scr { transition-duration: 190ms; }
+  .b-shoji.peek .scr.l { transform: translateX(-13%); }
+  .b-shoji.peek .scr.r { transform: translateX(13%); }
+  .b-shoji.open .scr { transition-duration: 430ms; }
+  .b-shoji.open .scr.l { transform: translateX(-100%); }
+  .b-shoji.open .scr.r { transform: translateX(100%); }
+  .b-shoji.snap .scr { transition-duration: 200ms; transition-timing-function: cubic-bezier(.2,1,.3,1); }
+  .b-shoji .t { position: relative; z-index: 2; padding: 8px 16px; border: 1px solid var(--ink); background: var(--face); box-shadow: 2px 2px 0 rgba(36,34,31,.16); }
+
+  /* 04 Tsugite — a joint has two resting states, so it was never a button.
+     Apart is off, seated is on. The label lives outside; the joint is the control. */
+  .tsu-field { display:flex; align-items:center; gap:15px; }
+  .tsu-field .lbl { font-size:14px; font-weight:650; white-space:nowrap; }
+  .b-tsu { position:relative; width:150px; height:46px; display:flex; padding:0; border:0; background:none; }
+  .b-tsu .pc { height:100%; background:var(--beige-deep); transition:transform 240ms cubic-bezier(.2,.9,.25,1); }
+  .b-tsu .pc.a { width:68%; display:flex; align-items:center; justify-content:center; color:var(--ink);
+    font-size:12px; font-weight:750; letter-spacing:.14em; transform:translateX(-12px); }
+  .b-tsu .pc.b { width:32%; transform:translateX(12px); }
+  .b-tsu:not([aria-checked="true"]):not(.joining):hover .pc.a { transform:translateX(-6px); }
+  .b-tsu:not([aria-checked="true"]):not(.joining):hover .pc.b { transform:translateX(6px); }
+  .b-tsu[aria-checked="true"] .pc.a { transform:translateX(0); }
+  .b-tsu[aria-checked="true"] .pc.b { transform:translateX(-12px); }
+  .b-tsu[aria-checked="true"] .pc { background:color-mix(in srgb, var(--beige-deep) 62%, var(--moss)); }
+
+  /* Joint profiles. */
+  .b-tsu.ari .pc.a { clip-path:polygon(0 0, calc(100% - 12px) 0, calc(100% - 12px) 31%, 100% 22%, 100% 78%, calc(100% - 12px) 69%, calc(100% - 12px) 100%, 0 100%); }
+  .b-tsu.ari .pc.b { clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 69%, 12px 78%, 12px 22%, 0 31%); }
+  .b-tsu.hozo .pc.a { clip-path:polygon(0 0, 100% 0, 100% 32%, calc(100% - 12px) 32%, calc(100% - 12px) 68%, 100% 68%, 100% 100%, 0 100%); }
+  .b-tsu.hozo .pc.b { clip-path:polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 12px 68%, 0 68%, 0 32%, 12px 32%); }
+  .b-tsu.aikaki .pc.a { clip-path:polygon(0 0, 100% 0, 100% 50%, calc(100% - 12px) 50%, calc(100% - 12px) 100%, 0 100%); }
+  .b-tsu.aikaki .pc.b { clip-path:polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 50%, 12px 50%); }
+
+  /* Wind up, slam, squash, settle. */
+  .b-tsu.joining .pc.a { animation:join-a 640ms both; }
+  .b-tsu.joining .pc.b { animation:join-b 640ms both; }
+  .b-tsu.joining { animation:join-squash 640ms both; }
+  .b-tsu.parting .pc.a { animation:part-a 400ms cubic-bezier(.3,1.5,.5,1) both; }
+  .b-tsu.parting .pc.b { animation:part-b 400ms cubic-bezier(.3,1.5,.5,1) both; }
+  @keyframes join-a { 0%{transform:translateX(-12px)} 20%{transform:translateX(-27px)} 44%{transform:translateX(6px)} 60%{transform:translateX(-3px)} 78%{transform:translateX(1px)} 100%{transform:translateX(0)} }
+  @keyframes join-b { 0%{transform:translateX(12px)} 20%{transform:translateX(27px)} 44%{transform:translateX(-18px)} 60%{transform:translateX(-9px)} 78%{transform:translateX(-13px)} 100%{transform:translateX(-12px)} }
+  @keyframes join-squash { 0%,38%{transform:scale(1,1)} 47%{transform:scale(.93,1.12)} 60%{transform:scale(1.05,.94)} 76%{transform:scale(.99,1.02)} 100%{transform:scale(1,1)} }
+  @keyframes part-a { 0%{transform:translateX(0)} 35%{transform:translateX(-20px)} 100%{transform:translateX(-12px)} }
+  @keyframes part-b { 0%{transform:translateX(-12px)} 35%{transform:translateX(21px)} 100%{transform:translateX(12px)} }
+
+  /* Impact lines at the seam. */
+  .b-tsu .burst { position:absolute; top:50%; left:90px; width:0; height:0; opacity:0; pointer-events:none; }
+  .b-tsu .burst i { position:absolute; width:11px; height:3px; margin-top:-1.5px; border-radius:2px; background:var(--ink); transform-origin:0 50%; }
+  .b-tsu .burst i:nth-child(1){transform:rotate(12deg) translateX(8px)} .b-tsu .burst i:nth-child(2){transform:rotate(64deg) translateX(8px)}
+  .b-tsu .burst i:nth-child(3){transform:rotate(128deg) translateX(8px)} .b-tsu .burst i:nth-child(4){transform:rotate(190deg) translateX(8px)}
+  .b-tsu .burst i:nth-child(5){transform:rotate(248deg) translateX(8px)} .b-tsu .burst i:nth-child(6){transform:rotate(304deg) translateX(8px)}
+  .b-tsu.joining .burst { animation:burst 340ms ease-out 250ms both; }
+  @keyframes burst { 0%{opacity:0;transform:scale(.25)} 22%{opacity:.9} 100%{opacity:0;transform:scale(1.75)} }
+
+  /* 05 Cord — pull it down and it stays down. Position is the state. */
+  .b-cord { position: relative; width: 118px; height: 118px; padding: 0; border: 0; background: none; }
+  .b-cord .rope { position: absolute; top: 0; left: 50%; width: 3px; height: 34px; background: var(--ink); transform: translateX(-50%); transition: height 300ms cubic-bezier(.3,1.4,.5,1); }
+  .b-cord .bead { position: absolute; top: 30px; left: 50%; width: 17px; height: 22px; border: 2px solid var(--ink); border-radius: 44% 44% 50% 50%; background: var(--beige-deep); transform: translateX(-50%); transition: top 300ms cubic-bezier(.3,1.4,.5,1); }
+  .b-cord .lbl { position: absolute; right: 0; bottom: 6px; left: 0; font-size: 13px; font-weight: 650; letter-spacing: .04em; }
+  .b-cord[aria-pressed="true"] .rope { height: 64px; }
+  .b-cord[aria-pressed="true"] .bead { top: 60px; }
+
+  /* 06 Mizuhiki — the bow cinches to a knot that cannot be retied. */
+  .b-mizuhiki { width: 128px; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 650; }
+  .b-mizuhiki svg { display: block; width: 128px; height: 62px; }
+  .b-mizuhiki .loop { fill: none; stroke: var(--ink); stroke-width: 2.4; transition: transform 420ms cubic-bezier(.4,0,.2,1), opacity 300ms ease; transform-origin: 64px 31px; }
+  .b-mizuhiki .knot { fill: var(--ink); transition: transform 420ms cubic-bezier(.3,1.5,.5,1); transform-origin: 64px 31px; }
+  .b-mizuhiki[aria-pressed="true"] .loop { opacity: .25; transform: scaleX(.16); }
+  .b-mizuhiki[aria-pressed="true"] .knot { transform: scale(1.5); }
+  .b-mizuhiki .lbl { display: block; margin-top: 2px; }
+
+  /* 07 Brush — the stroke is loaded at the start and runs dry at the tail. */
+  .b-brush { position: relative; padding: 6px 2px 14px; border: 0; background: none; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+  .b-brush .stroke { position: absolute; right: 0; bottom: 4px; left: 0; height: 7px; background: var(--ink); clip-path: polygon(0 0, 82% 8%, 96% 42%, 100% 74%, 88% 100%, 0 100%); transform: scaleX(0); transform-origin: left center; transition: transform 420ms cubic-bezier(.25,.8,.3,1); }
+  .b-brush:hover .stroke, .b-brush:focus-visible .stroke { transform: scaleX(1); }
+
+  /* 08 Approach — reads how fast you came at it. */
+  .b-approach { width: 152px; height: 64px; border: 2px solid var(--ink); background: var(--face); font-size: 14px; font-weight: 650; transition: transform 260ms cubic-bezier(.2,.9,.25,1), box-shadow 260ms ease; }
+  .b-approach.rush { box-shadow: 7px 7px 0 var(--ink); transform: translate(-5px, -5px) rotate(-1.6deg); transition-duration: 90ms; transition-timing-function: cubic-bezier(.2,2.2,.4,1); }
+  .b-approach.drift { box-shadow: 3px 3px 0 var(--ink); transform: translate(-2px, -2px); transition-duration: 520ms; }
+
+  /* 09 Kintsugi — the break is visible until you mend it. */
+  .b-kintsugi { position: relative; width: 164px; height: 66px; overflow: hidden; padding: 0; border: 0; background: none; }
+  .b-kintsugi .sh { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--ink); color: var(--face); font-size: 14px; font-weight: 650; transition: transform 340ms cubic-bezier(.3,1.3,.4,1); }
+  .b-kintsugi .sh.a { clip-path: polygon(0 0, 54% 0, 44% 34%, 58% 62%, 48% 100%, 0 100%); transform: translate(-7px, -5px); }
+  .b-kintsugi .sh.b { clip-path: polygon(54% 0, 100% 0, 100% 100%, 48% 100%, 58% 62%, 44% 34%); transform: translate(7px, 5px); }
+  .b-kintsugi .seam { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 300ms ease 160ms; }
+  .b-kintsugi .seam path { fill: none; stroke: var(--beige); stroke-width: 3.4; }
+  .b-kintsugi[aria-pressed="true"] .sh { transform: translate(0, 0); }
+  .b-kintsugi[aria-pressed="true"] .seam { opacity: 1; }
+
+  /* 10 Fold — a folded tab that opens out. */
+  .b-fold { position: relative; width: 158px; height: 62px; border: 2px solid var(--ink); background: var(--face); font-size: 14px; font-weight: 650; }
+  .b-fold::after { position: absolute; top: -2px; right: -2px; width: 30px; height: 30px; content: ""; background: var(--beige-deep); clip-path: polygon(100% 0, 100% 100%, 0 0); transition: transform 300ms cubic-bezier(.2,.9,.25,1); transform-origin: 100% 0; }
+  .b-fold:hover::after, .b-fold:focus-visible::after { transform: scale(.24); }
+
+  /* 11 Wear — it keeps a record of every press. */
+  .b-wear { position: relative; width: 152px; height: 64px; overflow: hidden; border: 2px solid var(--ink); background: var(--face); font-size: 14px; font-weight: 650; }
+  .b-wear .scuff { position: absolute; width: 26px; height: 2px; background: var(--ink); opacity: .17; pointer-events: none; }
+
+  /* 12 Hold — commitment takes as long as it takes. */
+  .b-hold { position: relative; width: 168px; height: 64px; overflow: hidden; border: 2px solid var(--ink); background: var(--face); font-size: 14px; font-weight: 650; }
+  .b-hold .t { position: relative; z-index: 3; padding: 5px 11px; border: 1px solid var(--ink); background: var(--face); box-shadow: 2px 2px 0 rgba(0,0,0,.14); }
+  .b-hold .wash { position: absolute; top: 0; bottom: 0; left: 0; z-index: 0; width: 0; background: linear-gradient(90deg, var(--accent-pale) 0 calc(100% - 16px), color-mix(in srgb, var(--accent-pale) 30%, transparent) 100%); transition: width 240ms ease; }
+  .b-hold.arming .wash { width: 100%; transition: width 1400ms linear; }
+  .b-hold .petal { position: absolute; z-index: 1; width: var(--sz); height: var(--sz); pointer-events: none; animation: petal-in 260ms cubic-bezier(.2,1.5,.4,1) both; }
+  .b-hold.done { border-color: var(--accent); }
+  @keyframes petal-in { from { opacity: 0; transform: scale(.25) rotate(var(--r)); } to { opacity: 1; transform: scale(1) rotate(var(--r)); } }
+
+  /* 13 Bell — struck, then left to settle. */
+  .b-bell { position: relative; width: 108px; height: 122px; padding: 0; border: 0; background: none; }
+  .b-bell .swing { position: absolute; top: 0; left: 50%; display: block; width: 56px; margin-left: -28px; transform-origin: 50% 0; }
+  .b-bell .rope { display: block; width: 3px; height: 26px; margin: 0 auto; background: var(--ink); }
+  .b-bell .body { position: relative; display: block; width: 46px; height: 40px; margin: 0 auto; border: 2px solid var(--ink); border-radius: 6px 6px 22px 22px; background: var(--beige-deep); }
+  .b-bell .body::after { position: absolute; bottom: -5px; left: 50%; display: block; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; content: ""; background: var(--ink); }
+  .b-bell.ring .swing { animation: swing 1500ms cubic-bezier(.36,.07,.19,.97) both; }
+  .b-bell .lbl { position: absolute; right: 0; bottom: 4px; left: 0; font-size: 13px; font-weight: 650; }
+  @keyframes swing { 0% { transform: rotate(0); } 12% { transform: rotate(13deg); } 30% { transform: rotate(-9deg); } 50% { transform: rotate(5.5deg); } 70% { transform: rotate(-3deg); } 86% { transform: rotate(1.4deg); } 100% { transform: rotate(0); } }
+
+  /* 14 Ma — it makes room for you as you approach. */
+  .b-ma { border: 2px solid var(--ink); background: var(--face); font-size: 14px; font-weight: 650; letter-spacing: .02em; padding: 15px 22px; transition: padding 420ms cubic-bezier(.2,.9,.25,1), letter-spacing 420ms cubic-bezier(.2,.9,.25,1); }
+  .b-ma.near { padding: 22px 44px; letter-spacing: .13em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 1ms !important; animation-duration: 1ms !important; }
+  }
+</style>
+
+<div class="masthead">
+  <h1>Button specimens — sheet 01</h1>
+  <p>Kimono's own palette — sumi ink, paper, and the ema plaque's wood. Hover, press and toggle each one; several only show what they do once you use them.</p>
+</div>
+
+<ul class="sheet">
+  <li class="spec">
+    <div class="stage"><button class="b-hanko" type="button">Save</button></div>
+    <p class="name"><span class="num">01</span>Hanko</p>
+    <p class="hint">Pressing leaves an impression that lingers.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-noren" type="button"><span class="pn l"><span class="t">Connect</span></span><span class="pn r"><span class="t">Connect</span></span></button></div>
+    <p class="name"><span class="num">02</span>Noren</p>
+    <p class="hint">The curtain splits the label; you part it to pass through.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-shoji" type="button"><span class="t">Open</span><span class="scr l"></span><span class="scr r"></span></button></div>
+    <p class="name"><span class="num">03</span>Shoji</p>
+    <p class="hint">A crack on approach, all the way open if you stay — or click and it goes straight there.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><span class="tsu-field"><button class="b-tsu hozo" type="button" role="switch" aria-checked="false" aria-label="Run this app"><span class="pc a">OFF</span><span class="pc b"></span><span class="burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span></button><span class="lbl">Run this app</span></span></div>
+    <p class="name"><span class="num">04</span>Tsugite — switch</p>
+    <p class="hint">Apart is off. Click and the joint drives home and stays seated.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-cord" type="button" aria-pressed="false"><span class="rope"></span><span class="bead"></span><span class="lbl">Run</span></button></div>
+    <p class="name"><span class="num">05</span>Cord</p>
+    <p class="hint">Pull it down and it stays down. Position is the state.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-mizuhiki" type="button" aria-pressed="false"><svg viewBox="0 0 128 62" aria-hidden="true"><g class="loop"><path d="M64 31C50 12 24 14 24 31s26 19 40 0Z"/><path d="M64 31c14-19 40-17 40 0s-26 19-40 0Z"/></g><circle class="knot" cx="64" cy="31" r="6"/></svg><span class="lbl">Delete</span></button></div>
+    <p class="name"><span class="num">06</span>Mizuhiki</p>
+    <p class="hint">The bow cinches into a knot that cannot be retied.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-brush" type="button">Publish<span class="stroke"></span></button></div>
+    <p class="name"><span class="num">07</span>Brush</p>
+    <p class="hint">Loaded at the start of the stroke, running dry at the tail.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-approach" type="button">Save</button></div>
+    <p class="name"><span class="num">08</span>Approach</p>
+    <p class="hint">Reads how fast you came at it. Rush it and it snaps.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-kintsugi" type="button" aria-pressed="false"><span class="sh a">Repair</span><span class="sh b">Repair</span><svg class="seam" viewBox="0 0 164 66" aria-hidden="true"><path d="M88.5 0 72 22.4l23 18.5L79 66"/></svg></button></div>
+    <p class="name"><span class="num">09</span>Kintsugi</p>
+    <p class="hint">The break stays visible until you mend it.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-fold" type="button">Expand</button></div>
+    <p class="name"><span class="num">10</span>Fold</p>
+    <p class="hint">A folded corner that opens out as you reach it.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-wear" type="button">Deploy</button></div>
+    <p class="name"><span class="num">11</span>Wear</p>
+    <p class="hint">Keeps a record of every press it has taken.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-hold" type="button"><span class="wash"></span><span class="t">Hold to erase</span></button></div>
+    <p class="name"><span class="num">12</span>Hold</p>
+    <p class="hint">Petals fill it left to right while you hold. Let go early and they scatter.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-bell" type="button"><span class="swing"><span class="rope"></span><span class="body"></span></span><span class="lbl">Notify</span></button></div>
+    <p class="name"><span class="num">13</span>Bell</p>
+    <p class="hint">Struck, then left to settle on its own.</p>
+  </li>
+
+  <li class="spec">
+    <div class="stage"><button class="b-ma" type="button">Continue</button></div>
+    <p class="name"><span class="num">14</span>Ma</p>
+    <p class="hint">Makes room for itself as you approach.</p>
+  </li>
+</ul>
+
+<div class="rule">
+  <h2>04 Tsugite — joint profiles</h2>
+  <p>Same switch, three real joints. The profile is not decoration: a dovetail cannot be pulled apart in the direction it was slid together, which is a different promise from a tenon — so the joint can say how reversible the setting is.</p>
+</div>
+
+<ul class="sheet">
+  <li class="spec">
+    <div class="stage"><span class="tsu-field"><button class="b-tsu ari" type="button" role="switch" aria-checked="false" aria-label="Run this app"><span class="pc a">OFF</span><span class="pc b"></span><span class="burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span></button><span class="lbl">Run this app</span></span></div>
+    <p class="name"><span class="num">04a</span>Ari — dovetail</p>
+    <p class="hint">Flares outward. Slots in, will not pull back out.</p>
+  </li>
+  <li class="spec">
+    <div class="stage"><span class="tsu-field"><button class="b-tsu hozo" type="button" role="switch" aria-checked="false" aria-label="Run this app"><span class="pc a">OFF</span><span class="pc b"></span><span class="burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span></button><span class="lbl">Run this app</span></span></div>
+    <p class="name"><span class="num">04b</span>Hozo — tenon</p>
+    <p class="hint">The straight tab you already saw. Plainest of the three.</p>
+  </li>
+  <li class="spec">
+    <div class="stage"><span class="tsu-field"><button class="b-tsu aikaki" type="button" role="switch" aria-checked="false" aria-label="Run this app"><span class="pc a">OFF</span><span class="pc b"></span><span class="burst" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span></button><span class="lbl">Run this app</span></span></div>
+    <p class="name"><span class="num">04c</span>Aikaki — half-lap</p>
+    <p class="hint">The pieces step past each other rather than interlocking.</p>
+  </li>
+</ul>
+
+<script>
+  // 04 Tsugite — a switch, not a button: apart is off, seated is on.
+  for (const el of document.querySelectorAll(".b-tsu")) {
+    const face = el.querySelector(".pc.a");
+    const settle = (e) => {
+      if (e.target !== el) return;
+      el.removeEventListener("animationend", settle);
+      el.classList.remove("joining");
+    };
+    const release = (e) => {
+      if (e.target !== face) return;
+      face.removeEventListener("animationend", release);
+      el.classList.remove("parting");
+    };
+    el.addEventListener("click", () => {
+      if (el.classList.contains("joining") || el.classList.contains("parting")) return;
+      const on = el.getAttribute("aria-checked") === "true";
+      el.setAttribute("aria-checked", String(!on));
+      if (on) {
+        el.classList.add("parting");
+        face.textContent = "OFF";
+        face.addEventListener("animationend", release);
+      } else {
+        el.classList.add("joining");
+        setTimeout(() => { if (el.getAttribute("aria-checked") === "true") face.textContent = "ON"; }, 280);
+        el.addEventListener("animationend", settle);
+      }
+    });
+  }
+
+  // 01 Hanko — leave an impression on the sheet under the seal.
+  document.querySelector(".b-hanko").addEventListener("click", (e) => {
+    const stage = e.currentTarget.closest(".stage");
+    const mark = document.createElement("span");
+    mark.className = "stamp-mark";
+    const r = e.currentTarget.getBoundingClientRect();
+    const s = stage.getBoundingClientRect();
+    mark.style.left = (r.left - s.left + 5) + "px";
+    mark.style.top = (r.top - s.top + 7) + "px";
+    stage.style.position = "relative";
+    stage.appendChild(mark);
+    setTimeout(() => mark.remove(), 1500);
+  });
+
+  // Toggles that hold their state in position or form.
+  for (const sel of [".b-cord", ".b-mizuhiki", ".b-kintsugi"]) {
+    const el = document.querySelector(sel);
+    el.addEventListener("click", () => {
+      const on = el.getAttribute("aria-pressed") === "true";
+      el.setAttribute("aria-pressed", String(!on));
+      const lbl = el.querySelector(".lbl");
+      if (sel === ".b-cord" && lbl) lbl.textContent = on ? "Run" : "Running";
+    });
+  }
+
+  // 08 Approach — classify the speed of the cursor as it arrives.
+  (() => {
+    const el = document.querySelector(".b-approach");
+    let lastX = 0, lastY = 0, lastT = 0, speed = 0;
+    addEventListener("pointermove", (e) => {
+      const now = performance.now();
+      const dt = now - lastT;
+      if (dt > 0 && lastT) {
+        const d = Math.hypot(e.clientX - lastX, e.clientY - lastY);
+        speed = speed * 0.6 + (d / dt) * 0.4;
+      }
+      lastX = e.clientX; lastY = e.clientY; lastT = now;
+    }, { passive: true });
+    el.addEventListener("pointerenter", () => {
+      el.classList.toggle("rush", speed > 0.85);
+      el.classList.toggle("drift", speed <= 0.85);
+    });
+    el.addEventListener("pointerleave", () => el.classList.remove("rush", "drift"));
+  })();
+
+  // 11 Wear — accumulate scuffs where it has been used.
+  (() => {
+    const el = document.querySelector(".b-wear");
+    let n = 0;
+    el.addEventListener("click", () => {
+      if (n >= 14) return;
+      n += 1;
+      const s = document.createElement("span");
+      s.className = "scuff";
+      s.style.left = (8 + Math.random() * 118) + "px";
+      s.style.top = (8 + Math.random() * 46) + "px";
+      s.style.transform = "rotate(" + (Math.random() * 60 - 30) + "deg)";
+      el.appendChild(s);
+    });
+  })();
+
+  // 03 Shoji — a crack first, then the full slide if you linger.
+  (() => {
+    const el = document.querySelector(".b-shoji");
+    let t = null;
+    const open = () => { el.classList.add("peek"); t = setTimeout(() => el.classList.add("open"), 400); };
+    const shut = () => { clearTimeout(t); el.classList.remove("peek", "open", "snap"); };
+    const throwOpen = () => { clearTimeout(t); el.classList.add("snap", "peek", "open"); };
+    el.addEventListener("pointerenter", open);
+    el.addEventListener("pointerleave", shut);
+    el.addEventListener("focus", open);
+    el.addEventListener("blur", shut);
+    el.addEventListener("pointerdown", throwOpen);
+    el.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") throwOpen(); });
+  })();
+
+  // 12 Hold — a wash advances left to right, petals ride on top.
+  (() => {
+  const el = document.querySelector(".b-hold");
+    const label = el.querySelector(".t");
+    const DUR = 1400, N = 44;
+    let done = null, petals = [], running = false;
+    const clear = () => {
+      for (const p of petals) { p.style.transition = "opacity 220ms ease"; p.style.opacity = "0"; setTimeout(() => p.remove(), 240); }
+      petals = [];
+    };
+    const start = () => {
+      if (el.classList.contains("done") || running) return;
+      running = true;
+      const r = el.getBoundingClientRect();
+      // Built once into a fragment and staggered by CSS delay — no per-tick DOM work.
+      let html = "";
+      for (let i = 0; i < N; i += 1) {
+        const frac = i / (N - 1);
+        const x = frac * (r.width - 18) + (Math.random() * 12 - 6);
+        const sz = 11 + Math.random() * 5;
+        html += Sakura.mark(Sakura.random(0.15), "petal " + Sakura.tone(),
+          "left:" + Math.max(2, Math.min(r.width - 16, x)).toFixed(1) + "px;" +
+          "bottom:" + (2 + Math.random() * (r.height - 15)).toFixed(1) + "px;" +
+          "--sz:" + sz.toFixed(0) + "px;" +
+          "--r:" + (Math.random() * 360).toFixed(0) + "deg;" +
+          "animation-delay:" + (frac * DUR * 0.94).toFixed(0) + "ms");
+      }
+      el.insertAdjacentHTML("beforeend", html);
+      petals = [...el.querySelectorAll(".sakura")];
+      el.classList.add("arming");
+      done = setTimeout(() => { running = false; el.classList.add("done"); label.textContent = "Erased"; }, DUR);
+    };
+    const cancel = () => {
+      if (el.classList.contains("done") || !running) return;
+      running = false;
+      clearTimeout(done);
+      el.classList.remove("arming");
+      clear();
+    };
+    el.addEventListener("pointerdown", start);
+    addEventListener("pointerup", cancel);
+    el.addEventListener("pointerleave", cancel);
+    el.addEventListener("keydown", (e) => { if (e.key === " " || e.key === "Enter") start(); });
+    el.addEventListener("keyup", cancel);
+  })();
+
+  // 13 Bell — strike, then let it settle.
+  (() => {
+    const el = document.querySelector(".b-bell");
+    el.addEventListener("click", () => {
+      el.classList.remove("ring");
+      void el.offsetWidth;
+      el.classList.add("ring");
+    });
+  })();
+
+  // 14 Ma — open up as the cursor gets close.
+  (() => {
+    const el = document.querySelector(".b-ma");
+    addEventListener("pointermove", (e) => {
+      const r = el.getBoundingClientRect();
+      const dx = Math.max(r.left - e.clientX, 0, e.clientX - r.right);
+      const dy = Math.max(r.top - e.clientY, 0, e.clientY - r.bottom);
+      el.classList.toggle("near", Math.hypot(dx, dy) < 130);
+    }, { passive: true });
+  })();
+</script>

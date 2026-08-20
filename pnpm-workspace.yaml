@@ -1,7 +1,10 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - apps/*
+  - packages/*
 
 onlyBuiltDependencies:
   - sharp
   - unrs-resolver
+
+patchedDependencies:
+  next@16.2.2: patches/next@16.2.2.patch

@@ -1,0 +1,17 @@
+FROM golang:1.24-alpine AS build
+WORKDIR /src
+COPY go.mod ./
+COPY appliance_assets.go ./
+COPY infra infra
+COPY apps/portal/public apps/portal/public
+# The embedded appliance now ships the installer, so it must be in the context.
+COPY scripts scripts
+COPY cli cli
+RUN CGO_ENABLED=0 go build -o /out/kimono ./cli/cmd/kimono
+
+FROM docker:28-cli
+# The reconciler applies the Portal's deployment plan with the host Docker
+# engine. It serves no traffic and reads no request input.
+COPY --from=build /out/kimono /usr/local/bin/kimono
+ENV KIMONO_HOME=/var/lib/kimono KIMONO_ALLOW_UNPRIVILEGED=1
+ENTRYPOINT ["kimono", "server", "apply", "--watch"]

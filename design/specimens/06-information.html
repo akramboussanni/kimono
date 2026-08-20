@@ -1,0 +1,183 @@
+<meta charset="utf-8">
+<title>Information Patterns</title>
+<script src="sakura.js"></script>
+<style>
+  :root {
+    --ink:#24221f; --paper:#fff8f5; --face:#fffdfb; --wood:#d8b77f; --wood-pale:#ead2aa;
+    --accent:#a84d63; --accent-pale:#f2cbd2; --hair:#ded0be; --faint:#8b6d67; --moss:#5c7150;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:44px clamp(20px,5vw,64px) 130px; color:var(--ink); background:var(--paper); font-family:var(--ui); }
+  .masthead h1 { margin:0 0 8px; font-size:15px; font-weight:700; }
+  .masthead p { max-width:72ch; margin:0 0 46px; color:var(--faint); font-size:13px; line-height:1.55; }
+  .pat { padding-top:36px; margin-top:36px; border-top:1px solid var(--hair); }
+  .pat:first-of-type { border-top:0; margin-top:0; padding-top:0; }
+  .pat h2 { margin:0 0 7px; font-size:21px; font-weight:650; }
+  .pat h2 .kanji { margin-right:11px; font-family:var(--serif); font-size:26px; }
+  .pat h2 em { color:var(--accent); font-style:normal; font-weight:500; }
+  .blurb { max-width:74ch; margin:0 0 28px; color:var(--faint); font-size:13px; line-height:1.6; }
+
+  /* 短冊 — one record per strip, hung on a rail. */
+  .tanzaku { position:relative; display:flex; gap:16px; padding:34px 8px 12px; }
+  .tanzaku::before { position:absolute; top:16px; left:0; right:0; height:7px; content:""; background:var(--wood); }
+  .strip { position:relative; width:130px; padding:16px 13px 18px; border:2px solid var(--ink);
+    background:var(--face); transform-origin:50% -18px; }
+  .strip::before { position:absolute; top:-18px; left:50%; width:2px; height:18px; margin-left:-1px; content:""; background:var(--ink); }
+  .strip:nth-child(odd) { transform:rotate(-1.4deg); }
+  .strip:nth-child(even) { transform:rotate(1.2deg); }
+  .strip b { display:block; font-size:14px; }
+  .strip span { display:block; margin-top:7px; color:var(--faint); font-size:12px; line-height:1.45; }
+  .strip time { display:block; margin-top:11px; color:var(--accent); font:11px/1 var(--mono); }
+  .strip.done { background:var(--wood-pale); }
+  .strip.done b { text-decoration:line-through; text-decoration-color:var(--accent); }
+
+  /* 和綴じ — stitched binding, and the thread is the grouping. */
+  .watoji { max-width:560px; border:2px solid var(--ink); background:var(--face); }
+  .watoji .grp { position:relative; padding:0 0 0 46px; border-bottom:2px solid var(--ink); }
+  .watoji .grp:last-child { border-bottom:0; }
+  .watoji .grp::before { position:absolute; top:0; bottom:0; left:22px; width:2px; content:""; background:var(--hair); }
+  .watoji .grp h3 { margin:0; padding:12px 16px 12px 0; font-size:11px; font-weight:750; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--accent); }
+  .watoji .stitch { position:absolute; left:15px; width:16px; height:2px; background:var(--ink); }
+  .watoji .row { display:flex; align-items:baseline; gap:14px; padding:11px 16px 11px 0; border-top:1px solid var(--hair); }
+  .watoji .row b { flex:1; font-size:14px; font-weight:600; }
+  .watoji .row span { color:var(--faint); font-size:12px; }
+  .watoji .row time { color:var(--faint); font:11px var(--mono); }
+
+  /* 重箱 — tiers of a stacked box, one per group. */
+  .jubako { display:grid; max-width:420px; border:3px solid var(--ink); background:var(--ink); gap:3px; }
+  .tier { display:flex; align-items:center; gap:14px; padding:16px 18px; background:var(--wood-pale); }
+  .tier:nth-child(2) { background:var(--accent-pale); }
+  .tier:nth-child(3) { background:var(--face); }
+  .tier .mark { width:40px; height:40px; flex:0 0 auto; }
+  .tier b { flex:1; font-size:14px; }
+  .tier strong { font:600 22px/1 var(--serif); font-variant-numeric:tabular-nums; }
+  .tier small { display:block; margin-top:3px; color:var(--faint); font-size:11px; }
+
+  /* 番付 — rank is shown by size, the way the sumo sheet does it. */
+  .banzuke { max-width:560px; padding:22px 24px; border:2px solid var(--ink); background:var(--face); }
+  .banzuke ol { margin:0; padding:0; list-style:none; }
+  .banzuke li { display:flex; align-items:baseline; gap:16px; padding:9px 0; border-bottom:1px solid var(--hair); }
+  .banzuke li:last-child { border-bottom:0; }
+  .banzuke .nm { flex:1; font-family:var(--serif); font-weight:600; line-height:1.1; }
+  .banzuke .ct { color:var(--faint); font:12px var(--mono); font-variant-numeric:tabular-nums; }
+  .banzuke li:nth-child(1) .nm { font-size:30px; }
+  .banzuke li:nth-child(2) .nm { font-size:24px; }
+  .banzuke li:nth-child(3) .nm { font-size:19px; }
+  .banzuke li:nth-child(4) .nm { font-size:16px; }
+  .banzuke li:nth-child(5) .nm { font-size:14px; color:var(--faint); }
+
+  /* 絵巻 — history unrolled left to right. */
+  .emaki { position:relative; max-width:100%; overflow-x:auto; padding:30px 0 12px; }
+  .emaki .line { position:absolute; top:44px; left:0; right:0; height:2px; background:var(--hair); }
+  .emaki .track { position:relative; display:flex; gap:34px; min-width:min-content; }
+  .ev { position:relative; width:168px; padding-top:30px; }
+  .ev::before { position:absolute; top:9px; left:0; width:13px; height:13px; content:"";
+    border:2px solid var(--ink); border-radius:50%; background:var(--face); }
+  .ev.now::before { background:var(--accent); }
+  .ev time { display:block; margin-bottom:5px; color:var(--accent); font:11px var(--mono); }
+  .ev b { display:block; font-size:13px; }
+  .ev span { display:block; margin-top:4px; color:var(--faint); font-size:12px; line-height:1.4; }
+
+  /* empty state — an invitation, not an apology */
+  .empty { max-width:420px; padding:34px 28px; border:2px dashed var(--hair); background:var(--face); text-align:center; }
+  .empty .mark { width:56px; height:56px; margin:0 auto 16px; opacity:.5; }
+  .empty b { display:block; font:600 19px/1.3 var(--serif); }
+  .empty p { margin:8px 0 18px; color:var(--faint); font-size:13px; line-height:1.5; }
+  .empty button { padding:9px 18px; border:2px solid var(--ink); background:var(--accent-pale);
+    font:inherit; font-size:13px; font-weight:650; color:var(--ink); cursor:pointer; }
+</style>
+
+<div class="masthead">
+  <h1>Information inside an app — sheet 06</h1>
+  <p>Six ways to lay out what an app actually contains, using the household's own notes as the content. Each one borrows a Japanese object whose structure already encodes something: what is one record, what groups them, what ranks them, what orders them in time.</p>
+</div>
+
+<section class="pat">
+  <h2><span class="kanji">短冊</span>Tanzaku <em>— one record per strip</em></h2>
+  <p class="blurb">The paper strips hung on bamboo at Tanabata, one wish each. A record is a physical thing you can hang, take down, or cross out — which makes "one note" a unit rather than a row in a list.</p>
+  <div class="tanzaku">
+    <article class="strip"><b>Boiler service</b><span>Engineer's card is in the kitchen drawer.</span><time>due Mar</time></article>
+    <article class="strip"><b>Bin days</b><span>Recycling Tuesday, waste Friday.</span><time>weekly</time></article>
+    <article class="strip"><b>Wifi</b><span>Guest password is on the fridge.</span><time>—</time></article>
+    <article class="strip done"><b>Chimney swept</b><span>Booked and paid.</span><time>done</time></article>
+  </div>
+</section>
+
+<section class="pat">
+  <h2><span class="kanji">和綴じ</span>Watoji <em>— stitched, and the thread is the grouping</em></h2>
+  <p class="blurb">Japanese stab binding shows its stitches down the spine. Here the binding is the structure: a group is a run of pages held by one thread, so grouping is visible at the edge rather than announced by a heading colour.</p>
+  <div class="watoji">
+    <div class="grp"><span class="stitch" style="top:18px"></span><span class="stitch" style="top:52px"></span><span class="stitch" style="top:86px"></span>
+      <h3>Kitchen</h3>
+      <div class="row"><b>Boiler service</b><span>Engineer's card in the drawer</span><time>12 Mar</time></div>
+      <div class="row"><b>Dishwasher salt</b><span>Under the sink</span><time>3 Mar</time></div>
+    </div>
+    <div class="grp"><span class="stitch" style="top:18px"></span><span class="stitch" style="top:52px"></span>
+      <h3>Utilities</h3>
+      <div class="row"><b>Bin days</b><span>Recycling Tue, waste Fri</span><time>1 Mar</time></div>
+      <div class="row"><b>Meter readings</b><span>Photo each month</span><time>28 Feb</time></div>
+    </div>
+  </div>
+</section>
+
+<section class="pat">
+  <h2><span class="kanji">重箱</span>Jūbako <em>— a tier per category</em></h2>
+  <p class="blurb">Stacked lacquer boxes, each tier holding one kind of thing. Counts sit in the tier they belong to, so the totals are never a separate dashboard from the contents.</p>
+  <div class="jubako">
+    <div class="tier"><span class="mark" data-glyph="notes"></span><b>Notes<small>Shared household knowledge</small></b><strong>24</strong></div>
+    <div class="tier"><span class="mark" data-glyph="photos"></span><b>Photos<small>Since 2019</small></b><strong>1,208</strong></div>
+    <div class="tier"><span class="mark" data-glyph="recipes"></span><b>Recipes<small>What gets cooked here</small></b><strong>63</strong></div>
+  </div>
+</section>
+
+<section class="pat">
+  <h2><span class="kanji">番付</span>Banzuke <em>— rank shown as size</em></h2>
+  <p class="blurb">The sumo ranking sheet prints the top of the division largest and shrinks down the card, so standing is legible before a single number is read. Useful anywhere a count only matters relative to the others.</p>
+  <div class="banzuke">
+    <ol>
+      <li><span class="nm">Photos</span><span class="ct">412 opens</span></li>
+      <li><span class="nm">Kimono Notes</span><span class="ct">288 opens</span></li>
+      <li><span class="nm">Recipes</span><span class="ct">96 opens</span></li>
+      <li><span class="nm">Outline</span><span class="ct">31 opens</span></li>
+      <li><span class="nm">Paperless</span><span class="ct">4 opens</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="pat">
+  <h2><span class="kanji">絵巻</span>Emaki <em>— history unrolled</em></h2>
+  <p class="blurb">The horizontal picture scroll reads left to right through time, one continuous surface rather than a stack of dated cards. Suits activity, deploys, and backups — anything where the gaps between events matter as much as the events.</p>
+  <div class="emaki">
+    <span class="line"></span>
+    <div class="track">
+      <article class="ev"><time>12 Mar 09:14</time><b>Backup finished</b><span>1.2 GB to the cupboard drive</span></article>
+      <article class="ev"><time>11 Mar 21:02</time><b>Photos updated</b><span>v2.4.1, no downtime</span></article>
+      <article class="ev"><time>09 Mar 18:40</time><b>Outline went private</b><span>Cloudflare tunnel removed</span></article>
+      <article class="ev now"><time>just now</time><b>Notes opened</b><span>by akadmin</span></article>
+    </div>
+  </div>
+</section>
+
+<section class="pat">
+  <h2>Empty <em>— an invitation, not an apology</em></h2>
+  <p class="blurb">The one screen most likely to be met on day one. It names the thing that will fill it and offers the single action that starts it, in the app's own voice.</p>
+  <div class="empty">
+    <span class="mark" data-glyph="notes"></span>
+    <b>Nothing written down yet</b>
+    <p>Notes are shared with everyone in the house. The first one is usually the wifi password.</p>
+    <button type="button">Write a note</button>
+  </div>
+</section>
+
+<script>
+  addEventListener("DOMContentLoaded", () => {
+    for (const el of document.querySelectorAll("[data-glyph]")) {
+      const cls = el.className;
+      el.outerHTML = Sakura.app(Sakura.glyphs[el.dataset.glyph], cls, "");
+    }
+  });
+</script>

@@ -1,0 +1,55 @@
+/* ─────────────────────────────────────────────────────────────
+   渡 Watari — crossings. The press IS the page change; there is no
+   click-then-load. A crossing must cover completely before it swaps.
+
+     花吹雪  app ↔ app          the widest crossing, 1900ms
+     障子    through a door     a threshold you operated, 900ms
+     掛軸    page to page       inside one surface, 820ms
+   ───────────────────────────────────────────────────────────── */
+
+.k-crossing { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.k-crossing[data-kind] { pointer-events: all; }
+
+/* 花吹雪 */
+.k-haze { position: absolute; inset: 0; opacity: 0; background: color-mix(in srgb, var(--k-accent-pale) 74%, var(--k-accent)); }
+.k-crossing[data-kind="hanafubuki"] .k-haze { animation: k-haze 1900ms ease-in-out both; }
+@keyframes k-haze { 0% { opacity: 0 } 24%, 64% { opacity: 1 } 100% { opacity: 0 } }
+
+.k-petal { position: absolute; width: var(--sz); height: var(--sz); opacity: 0; overflow: visible;
+  color: var(--k-accent-pale); stroke: var(--k-accent); --k-fold: var(--k-sheet); }
+.k-petal.k-deep { color: color-mix(in srgb, var(--k-accent-pale) 62%, var(--k-accent)); }
+.k-petal.k-faint { color: color-mix(in srgb, var(--k-accent-pale) 52%, var(--k-sheet)); }
+.k-crossing[data-kind="hanafubuki"] .k-petal { animation: k-gust 1900ms linear both, k-gust-fade 1900ms linear both; }
+@keyframes k-gust {
+  0%   { transform: translate(-125vw, var(--y0)) rotate(0deg) scaleX(1); animation-timing-function: cubic-bezier(.12,.55,.28,1); }
+  30%  { transform: translate(0, 0) rotate(var(--r1)) scaleX(var(--f1)); animation-timing-function: linear; }
+  46%  { transform: translate(calc(var(--dx) * .45), calc(var(--dy) * .45)) rotate(var(--r2)) scaleX(var(--f2)); animation-timing-function: linear; }
+  62%  { transform: translate(var(--dx), var(--dy)) rotate(var(--r3)) scaleX(var(--f3)); animation-timing-function: cubic-bezier(.72,0,.9,.36); }
+  100% { transform: translate(125vw, var(--y3)) rotate(var(--r4)) scaleX(1); }
+}
+@keyframes k-gust-fade { 0% { opacity: 0 } 12%, 62% { opacity: 1 } 100% { opacity: 0 } }
+
+/* 障子 — the screens close over the room, then open on the new one. */
+.k-screen { position: absolute; top: 0; bottom: 0; width: 52%; background-color: var(--k-sheet);
+  background-image: linear-gradient(90deg, var(--k-hair) 0 1px, transparent 1px), linear-gradient(var(--k-hair) 0 1px, transparent 1px);
+  background-size: 62px 56px; }
+.k-screen.k-l { left: 0; border-right: var(--k-rule) solid var(--k-ink); transform: translateX(-101%); }
+.k-screen.k-r { right: 0; border-left: var(--k-rule) solid var(--k-ink); transform: translateX(101%); }
+.k-crossing[data-kind="shoji"] .k-screen.k-l { animation: k-shoji-l 900ms cubic-bezier(.35,.85,.25,1) both; }
+.k-crossing[data-kind="shoji"] .k-screen.k-r { animation: k-shoji-r 900ms cubic-bezier(.35,.85,.25,1) both; }
+@keyframes k-shoji-l { 0% { transform: translateX(-101%) } 34%, 48% { transform: translateX(0) } 100% { transform: translateX(-101%) } }
+@keyframes k-shoji-r { 0% { transform: translateX(101%) } 34%, 48% { transform: translateX(0) } 100% { transform: translateX(101%) } }
+
+/* 掛軸 — the rod draws a blind down over the page, then lifts it off the next. */
+.k-blind { position: absolute; top: 0; right: 0; left: 0; height: 0; background: var(--k-sheet);
+  border-bottom: var(--k-rule) solid var(--k-ink); }
+.k-rod { position: absolute; right: -8px; left: -8px; top: 0; height: 13px; border-radius: 3px;
+  background: var(--k-wood); box-shadow: 0 0 0 2px var(--k-ink); transform: translateY(-16px); }
+.k-crossing[data-kind="kakejiku"] .k-blind { animation: k-blind 820ms cubic-bezier(.3,.9,.25,1) both; }
+.k-crossing[data-kind="kakejiku"] .k-rod { animation: k-rod 820ms cubic-bezier(.3,.9,.25,1) both; }
+@keyframes k-blind { 0% { height: 0 } 44%, 56% { height: 100% } 100% { height: 0 } }
+@keyframes k-rod { 0% { transform: translateY(-16px) } 44%, 56% { transform: translateY(calc(100vh - 13px)) } 100% { transform: translateY(-16px) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-crossing * { animation-duration: 1ms !important; }
+}

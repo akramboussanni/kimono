@@ -1,0 +1,48 @@
+/* ─────────────────────────────────────────────────────────────
+   判 Seal — commits an action, or states a fact. One object, two uses.
+   ───────────────────────────────────────────────────────────── */
+
+.k-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--k-ma-3);
+  border: var(--k-rule) solid var(--k-ink);
+  border-radius: 0;
+  color: var(--k-ink);
+  background: var(--k-accent-pale);
+  font: 700 12px/1 var(--k-sans);
+  letter-spacing: .1em;
+  cursor: pointer;
+  transition: background-color var(--k-t-state) ease, transform var(--k-t-state) ease;
+}
+
+.k-seal:hover { background: var(--k-accent); color: var(--k-sheet); }
+.k-seal.k-tone-quiet { background: var(--k-sheet); }
+.k-seal.k-tone-danger { border-color: var(--k-accent); color: var(--k-accent); background: transparent; }
+.k-seal.k-tone-danger:hover { background: var(--k-accent); color: var(--k-sheet); }
+.k-seal:active { transform: translateY(2px); }
+.k-seal:focus-visible { outline: var(--k-rule) solid var(--k-accent); outline-offset: 3px; }
+.k-seal[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Stated, not pressed: the same object marking a fact. */
+.k-seal.k-stated {
+  min-height: 0;
+  padding: 5px 10px;
+  border-color: var(--k-stamp, var(--k-hair));
+  color: var(--k-stamp-ink, var(--k-faint));
+  background: transparent;
+  cursor: default;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.k-seal.k-stated:hover { background: transparent; color: var(--k-stamp-ink, var(--k-faint)); }
+.k-seal.k-running { --k-stamp: var(--k-moss); --k-stamp-ink: #3d5134; }
+.k-seal.k-private { --k-stamp: var(--k-accent); --k-stamp-ink: var(--k-accent); }
+.k-seal.k-wants { --k-stamp: var(--k-accent); --k-stamp-ink: var(--k-sheet); background: var(--k-accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-door > i, .k-joint .k-pc, .k-seal { transition-duration: 1ms; }
+  .k-joint.k-seating, .k-joint.k-seating .k-pc, .k-joint.k-parting .k-pc, .k-joint.k-seating .k-burst { animation-duration: 1ms; }
+}

@@ -1,0 +1,93 @@
+/* ═══════════════════════════════════════════════════════════════
+   列 Retsu — rows inside a compartment.
+
+   A compartment's body is a list far more often than it is prose, and
+   hand-writing that list per page is what let cards drift: one page gets the
+   hairlines, another the padding, a third neither. These carry it once.
+
+   A row separates from its sibling with a hairline and never encloses itself.
+   ═══════════════════════════════════════════════════════════════ */
+
+.k-rows { display: flex; flex-direction: column; }
+
+.k-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--k-ma-3);
+  padding: var(--k-ma-3) 0;
+  border-bottom: var(--k-hairline) solid var(--k-hair);
+}
+.k-row:first-child { padding-top: 0; }
+.k-row:last-child { padding-bottom: 0; border-bottom: 0; }
+
+.k-row-copy { min-width: 0; max-width: 62ch; }
+.k-row-copy > h3 { margin: 0 0 var(--k-ma-1); font: 600 21px/1.2 var(--k-display); letter-spacing: -.01em; color: var(--k-ink); }
+.k-row-copy > p { margin: 0; font: 12.5px/1.55 var(--k-sans); color: var(--k-ink-soft); }
+.k-row-lead { display: flex; align-items: center; flex-wrap: wrap; gap: var(--k-ma-3); }
+
+/* A muted aside inside a compartment. Never a row; it states, it does not list. */
+.k-note { margin: 0; max-width: 68ch; font: 12.5px/1.6 var(--k-sans); color: var(--k-ink-soft); }
+.k-note strong { color: var(--k-ink); font-weight: 700; }
+.k-note code, .k-inline-code { font: 11px/1.5 var(--k-mono); color: var(--k-ink); }
+
+/* An address or a number, unadorned. */
+.k-mono { display: flex; flex-wrap: wrap; gap: var(--k-ma-1) var(--k-ma-3); font: 11px/1.6 var(--k-mono); color: var(--k-ink-soft); }
+
+/* A command you are meant to copy. It keeps its frame because it is a thing
+   you act on, not a fact you read. */
+.k-command {
+  margin: var(--k-ma-3) 0 0;
+  padding: var(--k-ma-3) 0 var(--k-ma-3) var(--k-ma-3);
+  overflow-x: auto;
+  border-left: var(--k-rule) solid var(--k-hair);
+  background: color-mix(in srgb, var(--k-ground) 70%, transparent);
+}
+.k-command > code { font: 11px/1.7 var(--k-mono); color: var(--k-ink); white-space: pre; }
+
+/* A sequence, where the order is the information. */
+.k-steps { display: flex; flex-direction: column; gap: var(--k-ma-4); margin: 0; padding: 0; list-style: none; counter-reset: k-step; }
+.k-steps > li { counter-increment: k-step; position: relative; padding-left: var(--k-ma-5); }
+.k-steps > li::before { content: counter(k-step); position: absolute; left: 0; top: 2px; font: 700 11px/1.4 var(--k-mono); color: var(--k-accent); }
+.k-steps > li > h3 { margin: 0 0 var(--k-ma-1); font: 600 21px/1.2 var(--k-display); letter-spacing: -.01em; color: var(--k-ink); }
+.k-steps > li > p { margin: 0; max-width: 68ch; font: 12.5px/1.55 var(--k-sans); color: var(--k-ink-soft); }
+
+/* 引 A row that opens. The cue is a mark that turns, not an icon that spins:
+   paper folds, it does not animate. */
+.k-reveal { border-bottom: var(--k-hairline) solid var(--k-hair); }
+.k-reveal:last-child { border-bottom: 0; }
+
+.k-reveal > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--k-ma-3);
+  padding: var(--k-ma-3) 0;
+  cursor: pointer;
+  list-style: none;
+}
+.k-reveal > summary::-webkit-details-marker { display: none; }
+.k-reveal > summary:focus-visible { outline: var(--k-rule) solid var(--k-accent); outline-offset: 3px; }
+
+.k-reveal-copy { min-width: 0; max-width: 62ch; }
+.k-reveal-copy > h3 { margin: 0; font: 600 21px/1.2 var(--k-display); letter-spacing: -.01em; color: var(--k-ink); }
+.k-reveal-copy > p { margin: var(--k-ma-1) 0 0; font: 12.5px/1.55 var(--k-sans); color: var(--k-ink-soft); }
+
+/* The marker sits beside the title, never stranded at the far edge of a wide
+   row — a cue you have to look for is not a cue. */
+.k-reveal-cue {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-right: var(--k-rule) solid var(--k-ink);
+  border-bottom: var(--k-rule) solid var(--k-ink);
+  transform: rotate(-45deg);
+  transition: transform var(--k-t-state) var(--k-ease-in);
+}
+.k-reveal[open] > summary .k-reveal-cue { transform: rotate(45deg); }
+
+.k-reveal-body { display: grid; gap: var(--k-ma-3); padding: 0 0 var(--k-ma-4) calc(10px + var(--k-ma-3)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .k-reveal-cue { transition: none; }
+}

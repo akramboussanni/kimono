@@ -12,6 +12,7 @@ import (
 	"time"
 
 	kimono "github.com/kimonoapps/kimono"
+	"github.com/kimonoapps/kimono/cli/internal/reconcile"
 	"github.com/kimonoapps/kimono/cli/internal/system"
 )
 
@@ -26,7 +27,7 @@ func New(runner *system.Runner) *Manager {
 
 func (m *Manager) Execute(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: kimono server <install|start|stop|status|doctor|enrollment|cloudflare-ddns|logs|update|backup>")
+		return errors.New("usage: kimono server <install|start|stop|status|apply|doctor|enrollment|cloudflare-ddns|logs|update|backup>")
 	}
 	switch args[0] {
 	case "install":
@@ -37,6 +38,8 @@ func (m *Manager) Execute(args []string) error {
 		return m.compose("down")
 	case "status":
 		return m.compose("ps")
+	case "apply":
+		return m.apply(args[1:])
 	case "doctor":
 		return m.doctor()
 	case "repair":
@@ -100,7 +103,7 @@ func (m *Manager) install(args []string) error {
 		return err
 	}
 	flags := flag.NewFlagSet("server install", flag.ContinueOnError)
-	domain := flags.String("domain", "", "base public domain (for example, example.com)")
+	domain := flags.String("domain", "", "base public domain (for example, kimonolabs.dev)")
 	identityDomain := flags.String("identity-domain", "", "Authentik hostname")
 	meshDomain := flags.String("mesh-domain", "", "Headscale hostname")
 	portalDomain := flags.String("portal-domain", "", "Kimono Portal hostname")
@@ -126,17 +129,12 @@ func (m *Manager) install(args []string) error {
 
 	reader := bufio.NewReader(m.Runner.Stdin)
 	if *domain == "" && (*identityDomain == "" || *meshDomain == "") {
-		*domain = prompt(reader, m.Runner.Stdout, "Public domain", "")
+		*domain = prompt(reader, m.Runner.Stdout, "Public base domain", "")
 	}
-	if *identityDomain == "" && *domain != "" {
-		*identityDomain = "accounts." + strings.TrimPrefix(*domain, ".")
-	}
-	if *meshDomain == "" && *domain != "" {
-		*meshDomain = "mesh." + strings.TrimPrefix(*domain, ".")
-	}
-	if *portalDomain == "" && *domain != "" {
-		*portalDomain = "kimono." + strings.TrimPrefix(*domain, ".")
-	}
+	*domain = strings.Trim(strings.ToLower(strings.TrimSpace(*domain)), ".")
+	*identityDomain = qualifyHostname(*identityDomain, "accounts", *domain)
+	*meshDomain = qualifyHostname(*meshDomain, "mesh", *domain)
+	*portalDomain = qualifyHostname(*portalDomain, "kimono", *domain)
 	if *email == "" {
 		*email = prompt(reader, m.Runner.Stdout, "Certificate email", "")
 	}
@@ -173,6 +171,7 @@ func (m *Manager) install(args []string) error {
 		return err
 	}
 	env := fmt.Sprintf(`AUTHENTIK_DOMAIN=%s
+KIMONO_BASE_DOMAIN=%s
 MESH_DOMAIN=%s
 KIMONO_PORTAL_DOMAIN=%s
 MAGIC_DNS_DOMAIN=%s
@@ -199,17 +198,18 @@ KIMONO_PORTAL_OIDC_REDIRECT_URI=https://%s/api/auth/callback/authentik
 KIMONO_PORTAL_SESSION_SECRET=%s
 KIMONO_PORTAL_TAG=latest
 
-KIMONO_SAKURA_ASSET_PATH=%s
-KIMONO_MARK_ASSET_PATH=%s
-`, *identityDomain, *meshDomain, *portalDomain, *magicDNS, *email, pgPass, authSecret, oidcSecret, *meshDomain, *identityDomain, portalOIDCSecret, *portalDomain, portalSessionSecret,
-		filepath.Join(m.serverDir(), "assets", "sakura-branch-v2.png"), filepath.Join(m.serverDir(), "assets", "kimono-sakura-mark.svg"))
+KIMONO_RECONCILER_TAG=latest
+
+KIMONO_BRAND_ASSET_PATH=%s
+`, *identityDomain, *domain, *meshDomain, *portalDomain, *magicDNS, *email, pgPass, authSecret, oidcSecret, *meshDomain, *identityDomain, portalOIDCSecret, *portalDomain, portalSessionSecret,
+		filepath.Join(m.serverDir(), "assets"))
 	if err := os.WriteFile(m.envPath(), []byte(env), 0600); err != nil {
 		return err
 	}
 
 	_, _ = fmt.Fprintf(m.Runner.Stdout, "\nKimono server configured in %s\n", m.serverDir())
-	_, _ = fmt.Fprintf(m.Runner.Stdout, "Portal:   https://%s\nIdentity: https://%s\nMesh:     https://%s\n\n", *portalDomain, *identityDomain, *meshDomain)
-	_, _ = fmt.Fprintln(m.Runner.Stdout, "Create DNS A records for both names pointing directly to this VM's public IPv4.")
+	_, _ = fmt.Fprintf(m.Runner.Stdout, "Portal:   https://%s\nIdentity: https://%s\nMesh:     https://%s\n\nPublish applications such as Notes from the Portal.\n\n", *portalDomain, *identityDomain, *meshDomain)
+	_, _ = fmt.Fprintln(m.Runner.Stdout, "Create DNS A records for all public names pointing directly to this VM's public IPv4.")
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "The mesh record must not use the Cloudflare proxy.")
 	if *noStart {
 		return nil
@@ -229,10 +229,33 @@ KIMONO_MARK_ASSET_PATH=%s
 	return m.bootstrapBlueprint()
 }
 
+// qualifyHostname accepts either a complete hostname or a short label. Short
+// labels are placed below the configured Kimono base domain.
+func qualifyHostname(value, fallback, baseDomain string) string {
+	value = strings.Trim(strings.ToLower(strings.TrimSpace(value)), ".")
+	baseDomain = strings.Trim(strings.ToLower(strings.TrimSpace(baseDomain)), ".")
+	if value == "" {
+		value = fallback
+	}
+	if value == "@" {
+		return baseDomain
+	}
+	if strings.Contains(value, ".") || baseDomain == "" {
+		return value
+	}
+	return value + "." + baseDomain
+}
+
 func (m *Manager) start(args []string) error {
+	if err := system.RequireRoot(); err != nil {
+		return err
+	}
 	flags := flag.NewFlagSet("server start", flag.ContinueOnError)
 	skipDNSCheck := flags.Bool("skip-dns-check", false, "start even when public DNS cannot be verified")
 	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if err := m.ensureServerEnvironment(); err != nil {
 		return err
 	}
 	if !*skipDNSCheck {
@@ -283,11 +306,23 @@ func (m *Manager) extractAppliance() error {
 		"infra/compose/server/authentik/blueprints/kimono.css":            "authentik/blueprints/kimono.css",
 		"infra/compose/server/authentik/certs/.gitkeep":                   "authentik/certs/.gitkeep",
 		"infra/compose/server/authentik/custom-templates/.gitkeep":        "authentik/custom-templates/.gitkeep",
+		"infra/compose/server/app-definitions/.gitkeep":                   "app-definitions/.gitkeep",
 		"infra/compose/server/headscale/config.yaml.tmpl":                 "headscale/config.yaml.tmpl",
 		"infra/compose/server/headscale/policy.hujson":                    "headscale/policy.hujson",
 		"infra/compose/server/scripts/render-headscale-config.sh":         "scripts/render-headscale-config.sh",
-		"apps/portal/public/art/sakura-branch-v2.png":                     "assets/sakura-branch-v2.png",
 		"apps/portal/public/kimono-sakura-mark.svg":                       "assets/kimono-sakura-mark.svg",
+		"scripts/install.sh":                                              "assets/install.sh",
+	}
+	// Every brand asset ships, so adding a logo variant needs no CLI change.
+	brand, err := fs.ReadDir(kimono.ApplianceFiles, "apps/portal/public/brand")
+	if err != nil {
+		return err
+	}
+	for _, entry := range brand {
+		if entry.IsDir() {
+			continue
+		}
+		mappings["apps/portal/public/brand/"+entry.Name()] = "assets/" + entry.Name()
 	}
 	for source, destination := range mappings {
 		data, err := fs.ReadFile(kimono.ApplianceFiles, source)
@@ -302,15 +337,22 @@ func (m *Manager) extractAppliance() error {
 		if strings.HasSuffix(path, ".sh") {
 			mode = 0755
 		}
+		// The embedded copy is a bootstrap default. Once the reconciler owns a
+		// file, restoring the static one would undo live configuration — the
+		// mesh policy is the case that matters, because it decides reachability.
+		if generatedByKimono(path) {
+			continue
+		}
 		if err := os.WriteFile(path, data, mode); err != nil {
 			return err
 		}
 	}
-	// Authentik's server runs as a non-root user. Bind-mounted template
+	// Authentik and the Portal both run as non-root users. Bind-mounted
 	// directories must therefore be traversable even when they are empty.
 	for _, directory := range []string{
 		filepath.Join(m.serverDir(), "authentik"),
 		filepath.Join(m.serverDir(), "authentik", "custom-templates"),
+		filepath.Join(m.serverDir(), "app-definitions"),
 	} {
 		if err := os.Chmod(directory, 0755); err != nil {
 			return err
@@ -326,6 +368,9 @@ func (m *Manager) repair() error {
 	if err := m.extractAppliance(); err != nil {
 		return err
 	}
+	if err := m.ensureServerEnvironment(); err != nil {
+		return err
+	}
 	_, _ = fmt.Fprintln(m.Runner.Stdout, "Repaired embedded appliance files and container-readable permissions.")
 	if err := m.compose("up", "-d", "--remove-orphans"); err != nil {
 		return err
@@ -336,11 +381,32 @@ func (m *Manager) repair() error {
 	if err := m.reloadCaddy(); err != nil {
 		return err
 	}
+	if err := m.ensureMeshAPIKey(); err != nil {
+		_, _ = fmt.Fprintf(m.Runner.Stdout, "warning: %s\n", err)
+	} else if err := m.compose("up", "-d", "--no-deps", "portal"); err != nil {
+		return err
+	}
 	return m.bootstrapBlueprint()
 }
 
+// generatedByKimono reports whether a file on disk was written by the
+// reconciler rather than extracted from the embedded appliance.
+func generatedByKimono(path string) bool {
+	handle, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer handle.Close()
+	header := make([]byte, 64)
+	read, err := handle.Read(header)
+	if err != nil && read == 0 {
+		return false
+	}
+	return strings.Contains(string(header[:read]), "Generated by Kimono")
+}
+
 func (m *Manager) bootstrapBlueprint() error {
-	command := `from hashlib import sha512; from authentik.blueprints.models import BlueprintInstance; from authentik.blueprints.v1.importer import Importer; from authentik.blueprints.v1.tasks import blueprints_find, check_blueprint_v1_file; blueprints = [blueprint for blueprint in blueprints_find() if blueprint.path == "kimono/kimono-headscale.yaml"]; assert blueprints, "Kimono blueprint file was not discovered"; check_blueprint_v1_file(blueprints[0]); instance = BlueprintInstance.objects.get(path=blueprints[0].path); content = instance.retrieve(); applied = Importer.from_string(content, instance.context).apply(); assert applied, "Kimono blueprint failed to apply"; instance.status = "successful"; instance.last_applied_hash = sha512(content.encode()).hexdigest(); instance.save()`
+	command := reconcile.BlueprintApplyCommand("kimono/kimono-headscale.yaml")
 	if err := m.Runner.Run("docker", "exec", "kimono-server-authentik-worker-1", "ak", "shell", "-c", command); err != nil {
 		return fmt.Errorf("create and apply Kimono Authentik blueprint: %w", err)
 	}
@@ -355,10 +421,18 @@ func (m *Manager) logs(args []string) error {
 }
 
 func (m *Manager) update() error {
+	if err := system.RequireRoot(); err != nil {
+		return err
+	}
 	if err := m.extractAppliance(); err != nil {
 		return err
 	}
-	if err := m.compose("pull"); err != nil {
+	if err := m.ensureServerEnvironment(); err != nil {
+		return err
+	}
+	// A locally loaded or not-yet-published image must not block the update;
+	// Compose recreates from what the daemon already holds.
+	if err := m.compose("pull", "--ignore-pull-failures"); err != nil {
 		return err
 	}
 	if err := m.compose("up", "-d", "--remove-orphans"); err != nil {
@@ -367,7 +441,15 @@ func (m *Manager) update() error {
 	if err := m.reloadHeadscalePolicy(); err != nil {
 		return err
 	}
-	return m.reloadCaddy()
+	if err := m.reloadCaddy(); err != nil {
+		return err
+	}
+	if err := m.ensureMeshAPIKey(); err != nil {
+		_, _ = fmt.Fprintf(m.Runner.Stdout, "warning: %s\n", err)
+	} else if err := m.compose("up", "-d", "--no-deps", "portal"); err != nil {
+		return err
+	}
+	return m.bootstrapBlueprint()
 }
 
 func (m *Manager) reloadHeadscalePolicy() error {
@@ -410,7 +492,7 @@ func (m *Manager) backup(args []string) error {
 		return err
 	}
 	defer func() { _ = m.compose("up", "-d") }()
-	volumes := []string{"authentik_database", "authentik_data", "headscale_data", "caddy_data"}
+	volumes := []string{"authentik_database", "authentik_data", "headscale_data", "caddy_data", "outline_database", "outline_redis", "outline_data", "portal_config"}
 	for _, volume := range volumes {
 		fullName := "kimono-server_" + volume
 		if err := m.Runner.Run("docker", "run", "--rm", "-v", fullName+":/source:ro", "-v", abs+":/backup", "alpine:3.22", "tar", "czf", "/backup/"+volume+".tgz", "-C", "/source", "."); err != nil {

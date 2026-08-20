@@ -1,0 +1,209 @@
+<meta charset="utf-8">
+<title>Kata Foundations</title>
+<script src="sakura.js"></script>
+<style>
+  :root {
+    /* ---- INK ---- */
+    --ink:#24221f; --ink-soft:#5b524d; --faint:#8b6d67;
+    /* ---- PAPER ---- */
+    --ground:#fff8f5; --sheet:#fffdfb; --hair:#ded0be;
+    /* ---- WOOD ---- */
+    --wood:#d8b77f; --wood-pale:#ead2aa;
+    /* ---- SIGNAL ---- */
+    --accent:#a84d63; --accent-pale:#f2cbd2; --moss:#5c7150;
+    /* ---- EDGE ---- */
+    --e-hair:1px; --e-rule:2px; --e-frame:3px;
+    /* ---- MA ---- */
+    --ma-1:4px; --ma-2:8px; --ma-3:14px; --ma-4:22px; --ma-5:34px; --ma-6:56px;
+    /* ---- MOTION ---- */
+    --t-state:180ms; --t-element:420ms; --t-place:900ms;
+    --ease-in:cubic-bezier(.2,.9,.25,1); --ease-out:cubic-bezier(.7,0,.9,.36);
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:var(--ma-6) clamp(20px,5vw,64px) 130px; color:var(--ink); background:var(--ground); font-family:var(--ui); }
+  h1 { margin:0 0 var(--ma-2); font-size:16px; font-weight:700; }
+  .lede { max-width:74ch; margin:0 0 var(--ma-6); color:var(--faint); font-size:13px; line-height:1.6; }
+  section { padding-top:var(--ma-5); margin-top:var(--ma-5); border-top:var(--e-hair) solid var(--hair); }
+  h2 { margin:0 0 var(--ma-2); font-size:13px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; }
+  h2 .k { margin-right:10px; font-family:var(--serif); font-size:19px; letter-spacing:0; text-transform:none; }
+  .rule-txt { max-width:74ch; margin:0 0 var(--ma-4); color:var(--ink-soft); font-size:13px; line-height:1.6; }
+  .rule-txt b { color:var(--accent); }
+  .grid { display:flex; flex-wrap:wrap; gap:var(--ma-3); }
+
+  .sw { width:132px; }
+  .sw i { display:block; height:52px; border:var(--e-rule) solid var(--ink); }
+  .sw b { display:block; margin-top:var(--ma-2); font-size:12px; }
+  .sw code { display:block; margin-top:2px; color:var(--faint); font:10px var(--mono); }
+
+  .depth { display:flex; align-items:flex-end; gap:var(--ma-4); }
+  .d { width:150px; padding:var(--ma-3); background:var(--sheet); font-size:11px; }
+  .d.ground { background:var(--ground); border:var(--e-hair) dashed var(--hair); }
+  .d.sheet  { border:var(--e-hair) solid var(--hair); }
+  .d.panel  { border:var(--e-rule) solid var(--ink); }
+  .d.tray   { border:var(--e-frame) solid var(--ink); box-shadow:6px 6px 0 rgba(36,34,31,.14); }
+
+  .type li { list-style:none; display:flex; align-items:baseline; gap:var(--ma-4); padding:var(--ma-2) 0; border-bottom:var(--e-hair) solid var(--hair); }
+  .type ul { margin:0; padding:0; }
+  .type code { flex:0 0 96px; color:var(--faint); font:10px var(--mono); }
+  .s-display { font-family:var(--serif); font-weight:600; }
+  .s-mono { font-family:var(--mono); }
+
+  table { border-collapse:collapse; font-size:12.5px; }
+  th, td { padding:var(--ma-2) var(--ma-3); border-bottom:var(--e-hair) solid var(--hair); text-align:left; }
+  th { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
+  td code { font:11px var(--mono); color:var(--accent); }
+
+  .prim { width:250px; padding:var(--ma-3); border:var(--e-rule) solid var(--ink); background:var(--sheet); }
+  .prim h3 { margin:0 0 var(--ma-1); font-size:14px; }
+  .prim h3 .k { font-family:var(--serif); margin-right:8px; }
+  .prim p { margin:0 0 var(--ma-3); color:var(--faint); font-size:11.5px; line-height:1.5; }
+  .prim .demo { display:flex; align-items:center; justify-content:center; height:70px; background:var(--ground); }
+
+  .cut { max-width:74ch; margin:0; padding:0; list-style:none; }
+  .cut li { padding:var(--ma-2) 0; border-bottom:var(--e-hair) solid var(--hair); font-size:12.5px; }
+  .cut b { font-family:var(--serif); margin-right:var(--ma-2); }
+  .cut .keep { color:var(--moss); font-weight:700; }
+  .cut .kill { color:var(--faint); }
+
+  /* ---- the app shell ---- */
+  .shell { max-width:840px; border:var(--e-frame) solid var(--ink); background:var(--sheet); box-shadow:6px 6px 0 rgba(36,34,31,.14); }
+  .rail { display:flex; align-items:center; gap:var(--ma-3); height:52px; padding:0 var(--ma-3);
+    border-bottom:var(--e-rule) solid var(--ink); background:var(--ground); }
+  .rail .door { position:relative; width:40px; height:30px; flex:0 0 auto; overflow:hidden; padding:0;
+    border:var(--e-rule) solid var(--ink); background:var(--wood); cursor:pointer; }
+  .rail .door i { position:absolute; top:0; bottom:0; width:50%; background-color:var(--sheet);
+    background-image:linear-gradient(90deg,var(--hair) 0 1px,transparent 1px),linear-gradient(var(--hair) 0 1px,transparent 1px);
+    background-size:9px 8px; transition:transform var(--t-state) var(--ease-in); }
+  .rail .door i:first-child { left:0; } .rail .door i:last-child { right:0; }
+  .rail .door:hover i:first-child { transform:translateX(-30%); }
+  .rail .door:hover i:last-child { transform:translateX(30%); }
+  .rail .sakura { width:30px; height:30px; flex:0 0 auto; }
+  .rail .nm { font-size:14px; font-weight:700; }
+  .rail .seal { padding:3px 8px; border:var(--e-rule) solid var(--moss); color:#3d5134;
+    font-size:10px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; }
+  .rail .seal.priv { border-color:var(--accent); color:var(--accent); }
+  .rail .addr { margin-left:auto; color:var(--ink-soft); font:11.5px var(--mono);
+    text-decoration:underline; text-decoration-color:var(--accent); text-underline-offset:3px; text-decoration-thickness:2px; }
+  .guest { padding:var(--ma-5) var(--ma-4); background:repeating-linear-gradient(135deg, #f3f1ee 0 12px, #eeece8 12px 24px); }
+  .guest .note { max-width:52ch; margin:0 auto; padding:var(--ma-4); border:var(--e-hair) dashed #b9b4ad; background:#fbfaf8;
+    color:#6d675f; font-size:12.5px; line-height:1.6; text-align:center; }
+</style>
+
+<h1>型 Kata — Kimono foundations</h1>
+<p class="lede">The catalog phase produced eleven metaphors. A system cannot carry eleven. This is the cut: three materials, four depths, three interaction primitives, and fixed scales. Anything not on this page does not exist.</p>
+
+<section>
+  <h2><span class="k">墨紙木</span>Three materials</h2>
+  <p class="rule-txt">Every surface in Kimono is <b>paper</b>, every mark is <b>ink</b>, every physical object is <b>wood</b>. Signal colours are not materials — they are applied to them. If a colour is not on this row it is not in the system.</p>
+  <div class="grid">
+    <div class="sw"><i style="background:var(--ink)"></i><b>墨 ink</b><code>#24221f</code></div>
+    <div class="sw"><i style="background:var(--ink-soft)"></i><b>ink-soft</b><code>#5b524d</code></div>
+    <div class="sw"><i style="background:var(--faint)"></i><b>faint</b><code>#8b6d67</code></div>
+    <div class="sw"><i style="background:var(--ground)"></i><b>紙 ground</b><code>#fff8f5</code></div>
+    <div class="sw"><i style="background:var(--sheet)"></i><b>sheet</b><code>#fffdfb</code></div>
+    <div class="sw"><i style="background:var(--hair)"></i><b>hair</b><code>#ded0be</code></div>
+    <div class="sw"><i style="background:var(--wood)"></i><b>木 wood</b><code>#d8b77f</code></div>
+    <div class="sw"><i style="background:var(--wood-pale)"></i><b>wood-pale</b><code>#ead2aa</code></div>
+    <div class="sw"><i style="background:var(--accent)"></i><b>accent</b><code>#a84d63</code></div>
+    <div class="sw"><i style="background:var(--accent-pale)"></i><b>accent-pale</b><code>#f2cbd2</code></div>
+    <div class="sw"><i style="background:var(--moss)"></i><b>moss</b><code>#5c7150</code></div>
+  </div>
+  <p class="rule-txt" style="margin-top:var(--ma-4)"><b>Accent is never decoration.</b> It marks a thing that wants you, or an action you can take. <b>Moss means running</b> and nothing else. Nothing is ever coloured to be pretty.</p>
+</section>
+
+<section>
+  <h2><span class="k">深</span>Four depths, expressed as edges</h2>
+  <p class="rule-txt">Kimono has no blurred shadows and no elevation ramp. Depth is <b>edge weight</b>: hairline, rule, frame. A tray may carry one hard offset shadow, never a blur. There are exactly four depths and no fifth.</p>
+  <div class="depth">
+    <div class="d ground"><b>ground</b><br>the room itself</div>
+    <div class="d sheet"><b>sheet</b><br>hairline · content</div>
+    <div class="d panel"><b>panel</b><br>2px rule · a region</div>
+    <div class="d tray"><b>tray</b><br>3px frame · holds panels</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="k">字</span>Type — three roles, one scale</h2>
+  <p class="rule-txt"><b>Mincho names things</b> — pages, apps, the one sentence that matters. <b>Sans does the work.</b> <b>Mono is only ever an address or a number.</b> Seven sizes exist; nothing between them.</p>
+  <div class="type"><ul>
+    <li><code>36 display</code><span class="s-display" style="font-size:36px">Kimono Notes</span></li>
+    <li><code>27 display</code><span class="s-display" style="font-size:27px">Nothing written down yet</span></li>
+    <li><code>21 display</code><span class="s-display" style="font-size:21px">App settings</span></li>
+    <li><code>16 sans</code><span style="font-size:16px;font-weight:700">Section heading</span></li>
+    <li><code>14 sans</code><span style="font-size:14px">Body and control labels</span></li>
+    <li><code>12.5 sans</code><span style="font-size:12.5px;color:var(--faint)">Supporting detail</span></li>
+    <li><code>11 mono</code><span class="s-mono" style="font-size:11px">notes.house.net</span></li>
+  </ul></div>
+</section>
+
+<section>
+  <h2><span class="k">間</span>Ma and motion</h2>
+  <p class="rule-txt">Six spacing steps and three durations. <b>State</b> is what a control does under your cursor. <b>Element</b> is a thing changing on the page. <b>Place</b> is going somewhere, and a place change always covers completely before it swaps.</p>
+  <table>
+    <tr><th>token</th><th>value</th><th>used for</th></tr>
+    <tr><td><code>--ma-1…6</code></td><td>4 · 8 · 14 · 22 · 34 · 56</td><td>every gap and pad; nothing between</td></tr>
+    <tr><td><code>--t-state</code></td><td>180ms</td><td>hover, focus, press</td></tr>
+    <tr><td><code>--t-element</code></td><td>420ms</td><td>a panel opening, a joint seating</td></tr>
+    <tr><td><code>--t-place</code></td><td>900ms+</td><td>page changes; must cover before swapping</td></tr>
+    <tr><td><code>--ease-in</code></td><td>.2 .9 .25 1</td><td>arriving</td></tr>
+    <tr><td><code>--ease-out</code></td><td>.7 0 .9 .36</td><td>leaving</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="k">三</span>Three interaction primitives</h2>
+  <p class="rule-txt">Every interactive thing in Kimono is one of these three. If a need does not fit, it is text and a seal — <b>not a new object</b>.</p>
+  <div class="grid">
+    <div class="prim"><h3><span class="k">障子</span>Door</h3><p>Goes somewhere. Only ever navigation. Lives in chrome, never in content.</p>
+      <div class="demo"><button class="door" type="button" style="position:relative;width:56px;height:40px;overflow:hidden;padding:0;border:var(--e-rule) solid var(--ink);background:var(--wood);cursor:pointer">
+        <i style="position:absolute;top:0;bottom:0;left:0;width:50%;background-color:var(--sheet);background-image:linear-gradient(90deg,var(--hair) 0 1px,transparent 1px),linear-gradient(var(--hair) 0 1px,transparent 1px);background-size:12px 11px"></i>
+        <i style="position:absolute;top:0;bottom:0;right:0;width:50%;background-color:var(--sheet);background-image:linear-gradient(90deg,var(--hair) 0 1px,transparent 1px),linear-gradient(var(--hair) 0 1px,transparent 1px);background-size:12px 11px"></i></button></div></div>
+    <div class="prim"><h3><span class="k">継手</span>Joint</h3><p>Turns something on or off. The only switch. Apart is off, seated is on.</p>
+      <div class="demo"><span style="display:flex;width:110px;height:34px">
+        <span style="width:68%;height:100%;background:var(--wood);clip-path:polygon(0 0,calc(100% - 10px) 0,calc(100% - 10px) 31%,100% 22%,100% 78%,calc(100% - 10px) 69%,calc(100% - 10px) 100%,0 100%);transform:translateX(-10px)"></span>
+        <span style="width:32%;height:100%;background:var(--wood);clip-path:polygon(0 0,100% 0,100% 100%,0 100%,0 69%,10px 78%,10px 22%,0 31%);transform:translateX(10px)"></span></span></div></div>
+    <div class="prim"><h3><span class="k">判</span>Seal</h3><p>Commits an action, or states a fact. Pressed it stamps; static it labels a state.</p>
+      <div class="demo"><span style="padding:8px 14px;border:var(--e-rule) solid var(--ink);background:var(--accent-pale);font-size:12px;font-weight:700;letter-spacing:.12em">SAVE</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="k">切</span>The cut</h2>
+  <p class="rule-txt">What the catalog phase proposed, and what survives. A system is mostly a record of what you said no to.</p>
+  <ul class="cut">
+    <li><span class="keep">KEEP</span> <b>障子</b> as the door primitive, and as the place-change that covers.</li>
+    <li><span class="keep">KEEP</span> <b>継手</b> as the switch. Joint profile still to choose.</li>
+    <li><span class="keep">KEEP</span> <b>判</b> as button and state marker — one object, two uses.</li>
+    <li><span class="keep">KEEP</span> <b>花</b> the generated bloom: every app's identity, glyph inside.</li>
+    <li><span class="keep">KEEP</span> <b>花吹雪</b> as the one place-change effect. Others become optional skins, not vocabulary.</li>
+    <li><span class="kill">CUT</span> <b>提灯 木札 短冊 重箱 番付 絵巻 屏風 枯山水 床の間</b> — nine objects doing what panels, rules and seals already do. Their <em>layouts</em> may survive; the objects do not.</li>
+    <li><span class="kill">CUT</span> <b>暖簾</b> as a card. It stays only as a transition skin.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="k">客</span>Opening an app</h2>
+  <p class="rule-txt">Kimono hosts apps it did not write. It cannot restyle Outline, and should not try. So the system's job at the moment you open one is to <b>own the frame and the crossing</b>, then get out of the way. The rail is the only thing Kimono draws: the door back, the app's bloom, its name, its reach, its address. Everything under the rule belongs to the guest.</p>
+  <div class="shell">
+    <div class="rail">
+      <button class="door" type="button" aria-label="Back to the house"><i></i><i></i></button>
+      <span data-glyph="outline"></span>
+      <span class="nm">Outline</span>
+      <span class="seal">Public</span>
+      <span class="addr">outline.house.net</span>
+    </div>
+    <div class="guest">
+      <p class="note">The guest application renders here, in its own design language.<br>Kimono contributes nothing below the rule — no fonts, no colours, no chrome.</p>
+    </div>
+  </div>
+  <p class="rule-txt" style="margin-top:var(--ma-4)">The rail is <b>52px</b>, one rule thick, and never scrolls away. It is the only place a door may appear inside an app.</p>
+</section>
+
+<script>
+  addEventListener("DOMContentLoaded", () => {
+    for (const el of document.querySelectorAll("[data-glyph]")) el.outerHTML = Sakura.app(Sakura.glyphs[el.dataset.glyph], el.className, "");
+  });
+</script>

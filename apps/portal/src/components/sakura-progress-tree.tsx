@@ -86,7 +86,7 @@ export function SakuraProgressTree() {
         <g className="tree-blossoms">{blossoms.map((blossom) => <TreeBlossom key={`${blossom.x}-${blossom.y}`} {...blossom} />)}</g>
       </svg>
       <aside className="sakura-scroll" aria-hidden="true">
-        <span className="sakura-scroll-label">scroll · 咲く</span>
+        <span className="sakura-scroll-label">Scroll</span>
         <span className="sakura-scroll-line" />
         <span className="sakura-scroll-bloom" style={{ top: `calc(${progress * 100}% - ${progress * 38}px + 4px)` }}><SakuraMon /></span>
       </aside>

@@ -1,0 +1,22 @@
+{
+  "apiVersion": "apps.kimono.dev/v1alpha1",
+  "kind": "AppDefinition",
+  "metadata": {
+    "id": "kimono-portal",
+    "name": "Kimono Portal",
+    "shortName": "Portal",
+    "description": "Launcher, administration, and shared platform identity",
+    "category": "System",
+    "version": "0.1.0",
+    "icon": "icon.svg",
+    "colors": ["#d77b8c", "#5f3441", "#f2cbd2"]
+  },
+  "spec": {
+    "integration": "native",
+    "services": [],
+    "volumes": [],
+    "configuration": [],
+    "managedEnvironment": [],
+    "defaultNetworkPolicy": { "internetAccess": true, "allowedApps": [] }
+  }
+}

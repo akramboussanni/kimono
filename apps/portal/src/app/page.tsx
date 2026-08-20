@@ -1,32 +1,32 @@
 import { AppShell } from "@/components/app-shell";
-import { AppLauncher, type MockApp } from "@/components/app-card";
+import { AppLauncher } from "@/components/app-card";
+import { getApps, ownApps } from "@/lib/apps";
+import { getPlatformSettings } from "@/lib/settings";
+import { scanAppDefinitions } from "@/lib/definitions";
 import { auth } from "@/auth";
+import { holdsMeshAccess } from "@/lib/directory";
 import { redirect } from "next/navigation";
-
-const mockApps: MockApp[] = [
-  { id: "movies", name: "Movies", kanji: "映", icon: "play", colors: ["#c85d70", "#71384b", "#f1c3b4"] },
-  { id: "photos", name: "Photos", kanji: "写", icon: "image", colors: ["#7f987c", "#405a70", "#d9dfc8"] },
-];
 
 export default async function HomePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  const [settings, catalog] = await Promise.all([getPlatformSettings(), scanAppDefinitions()]);
 
   const displayName = session.user.name?.split(" ")[0] || session.user.username || "home";
 
   return (
-    <AppShell user={session.user}>
+    <AppShell user={session.user} brandColors={settings.brand.colors} >
       <div className="page home-page">
         <header className="home-hero">
           <div className="hero-copy">
-            <p className="hero-japanese" lang="ja">おかえり</p>
+            <p className="hero-kicker">Your household</p>
             <h1>Welcome home, <strong>{displayName}.</strong></h1>
           </div>
-          <div className="hero-petals" aria-hidden="true">
-            <i /><i /><i /><i /><i />
-          </div>
         </header>
-        <AppLauncher apps={mockApps} />
+        <AppLauncher apps={[
+          ...getApps(settings, catalog.definitions),
+          ...ownApps({ mesh: await holdsMeshAccess(session.user.username) }),
+        ]} />
       </div>
     </AppShell>
   );

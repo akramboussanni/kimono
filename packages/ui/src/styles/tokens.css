@@ -1,0 +1,62 @@
+/*
+ * 型 Kata — the Kimono design system.
+ *
+ * Three materials: paper, ink, wood. Signal colours are applied to them, never
+ * used as materials. Depth is edge weight, never blur: paper stacks, it does
+ * not glow. Three interaction primitives and no fourth — if a need does not fit
+ * a door, a joint, or a seal, it is text and a seal.
+ *
+ * See docs/design-system.md for the rules this file enforces.
+ */
+
+:root {
+  /* ---- ink ---- */
+  --k-ink: #24221f;
+  --k-ink-soft: #5b524d;
+  --k-faint: #8b6d67;
+
+  /* ---- paper ---- */
+  --k-ground: #faf7f1;
+  --k-sheet: #fffdf8;
+  --k-hair: #ded0be;
+
+  /* ---- wood ---- */
+  --k-wood: #d8b77f;
+  --k-wood-pale: #ead2aa;
+
+  /* ---- signal ---- */
+  --k-accent: #a84d63;
+  --k-accent-pale: #f2cbd2;
+  --k-moss: #5c7150;
+
+  /* ---- edges: weight is touchability ---- */
+  --k-hairline: 1px;
+  --k-rule: 2px;
+  --k-frame: 3px;
+
+  /* ---- ma ---- */
+  --k-ma-1: 4px;
+  --k-ma-2: 8px;
+  --k-ma-3: 14px;
+  --k-ma-4: 22px;
+  --k-ma-5: 34px;
+  --k-ma-6: 56px;
+
+  /* ---- motion ---- */
+  --k-t-state: 180ms;
+  --k-t-element: 420ms;
+  --k-t-place: 900ms;
+  --k-ease-in: cubic-bezier(.2, .9, .25, 1);
+  --k-ease-out: cubic-bezier(.7, 0, .9, .36);
+
+  /* ---- type ---- */
+  --k-display: "Shippori Mincho Kimono", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --k-sans: "Noto Sans Kimono", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  --k-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* The package cannot assume the host page set a box model. Every primitive
+   sizes itself in border-box, or padding silently widens flex bases and the
+   joinery stops meeting. */
+.k-tray, .k-compartment, .k-door, .k-joint, .k-seal, .k-crossing, .k-joint-field,
+.k-tray *, .k-compartment *, .k-door *, .k-joint *, .k-crossing * { box-sizing: border-box; }

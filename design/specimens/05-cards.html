@@ -1,0 +1,151 @@
+<meta charset="utf-8">
+<title>App Card Directions</title>
+<script src="sakura.js"></script>
+<style>
+  :root {
+    --ink:#24221f; --paper:#fff8f5; --face:#fffdfb; --wood:#d8b77f; --wood-pale:#ead2aa;
+    --accent:#a84d63; --accent-pale:#f2cbd2; --hair:#ded0be; --faint:#8b6d67;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:44px clamp(20px,5vw,64px) 130px; color:var(--ink); background:var(--paper); font-family:var(--ui); }
+  .masthead h1 { margin:0 0 8px; font-size:15px; font-weight:700; }
+  .masthead p { max-width:70ch; margin:0 0 46px; color:var(--faint); font-size:13px; line-height:1.55; }
+  .concept { padding-top:34px; margin-top:34px; border-top:1px solid var(--hair); }
+  .concept:first-of-type { border-top:0; margin-top:0; }
+  .concept h2 { margin:0 0 7px; font-size:21px; font-weight:650; }
+  .concept h2 .kanji { margin-right:11px; font-family:var(--serif); font-size:26px; }
+  .concept h2 em { color:var(--accent); font-style:normal; font-weight:500; }
+  .blurb { max-width:74ch; margin:0 0 26px; color:var(--faint); font-size:13px; line-height:1.6; }
+  .concept h3 { margin:26px 0 16px; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  .concept h3 small { margin-left:9px; color:var(--faint); font-size:11px; font-weight:400; letter-spacing:0; text-transform:none; }
+  .row { display:flex; flex-wrap:wrap; gap:22px; }
+
+  .card { position:relative; width:180px; }
+  .card .frame { position:relative; height:190px; overflow:hidden; border:2px solid var(--ink); background:var(--face); }
+  .card .mon { display:block; width:58px; height:58px; }
+  .card .mon .sakura { width:100%; height:100%; color:var(--bloom); stroke:var(--ink); --petal-fold:var(--face); }
+  .card .nm { font-size:13px; font-weight:700; line-height:1.2; text-align:center; }
+
+  /* Alerts ride the corner as a stamped seal, outside the frame so nothing hides them. */
+  .alert { position:absolute; z-index:6; top:-10px; right:-10px; min-width:28px; height:28px;
+    display:grid; place-items:center; padding:0 6px; border:2px solid var(--ink);
+    background:var(--accent); color:var(--face); font-size:13px; font-weight:750;
+    font-variant-numeric:tabular-nums; transform:rotate(-5deg); box-shadow:2px 2px 0 rgba(36,34,31,.22); }
+
+  .cap-line { margin-top:11px; }
+  .cap-line b { display:block; font-size:13px; }
+  .cap-line small { display:block; margin-top:3px; color:var(--faint); font-size:11px; }
+  /* Admin is read, not glanced at — it gets room and real type sizes. */
+  .v-admin { width:250px; }
+  .info { margin-top:13px; }
+  .info .app { display:block; margin-bottom:9px; font-size:16px; font-weight:700; letter-spacing:-.01em; }
+  .info .seal { display:inline-block; padding:5px 10px; border:2px solid var(--seal-stroke); color:var(--seal-ink);
+    font-size:11px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+  .info .meta { display:block; margin-top:10px; font-size:12.5px; line-height:1.45; }
+  /* a reachable address is a real address: monospace, ink, underlined in the accent */
+  .info .addr { color:var(--ink); font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-decoration:underline; text-decoration-color:var(--accent); text-underline-offset:4px; text-decoration-thickness:2px; }
+  .info .note { color:var(--faint); }
+  .info .warn { color:var(--accent); font-weight:650; }
+  .s-open { --seal-stroke:#5c7150; --seal-ink:#3d5134; }
+  .s-home { --seal-stroke:var(--accent); --seal-ink:var(--accent); }
+  .s-shut { --seal-stroke:var(--hair); --seal-ink:var(--faint); }
+  .s-warn { --seal-stroke:var(--accent); --seal-ink:var(--face); }
+  .s-warn .seal { background:var(--accent); }
+  .v-admin .frame { height:162px; }
+
+  /* 暖簾 */
+  .noren .frame { background:#2c2622; display:grid; place-items:center; align-content:center; gap:9px; }
+  .noren .rod { position:absolute; z-index:3; top:0; left:0; right:0; height:9px; background:var(--wood); }
+  .noren .pn { position:absolute; z-index:2; top:9px; bottom:0; width:52%; background:var(--accent);
+    box-shadow:inset 0 -4px rgba(0,0,0,.16); transition:transform 260ms ease; }
+  .noren .pn.l { left:0; } .noren .pn.r { right:0; }
+  .noren .glow { position:absolute; z-index:1; inset:9px 0 0;
+    background:radial-gradient(120% 84% at 50% 100%, var(--wood-pale) 0 30%, transparent 74%); opacity:0; }
+  .noren .hook { position:absolute; z-index:3; top:14px; left:50%; width:12px; height:12px; margin-left:-6px;
+    border:2px solid var(--wood-pale); border-radius:50%; opacity:0; }
+  .noren .mon, .noren .nm { position:relative; z-index:4; }
+  .noren .nm { color:var(--face); padding:0 10px; }
+  .noren.s-open .pn.l { transform:translateX(-52%); } .noren.s-open .pn.r { transform:translateX(52%); }
+  .noren.s-open .glow { opacity:1; }
+  .noren.s-shut .pn { display:none; } .noren.s-shut .hook { opacity:1; }
+  .noren.s-shut .nm { opacity:.72; } .noren.s-shut .mon { opacity:.5; }
+  .noren.s-warn .pn { background:#6d3040; } .noren.s-warn .pn.l { transform:rotate(-3deg) translateY(5px); }
+
+  /* 提灯 */
+  .chochin .frame { display:flex; flex-direction:column; align-items:center; justify-content:center; background:#2c2622; }
+  .chochin .cap { width:44px; height:9px; background:var(--wood); }
+  .chochin .lamp { width:104px; height:120px; display:grid; place-items:center; align-content:center; gap:3px;
+    padding:8px; border:2px solid var(--ink); border-radius:44% 44% 40% 40% / 20%;
+    background-color:var(--accent-pale);
+    background-image:repeating-linear-gradient(var(--ink) 0 1px, transparent 1px 12px);
+    transition:transform 260ms ease; }
+  .chochin .mon { width:46px; height:46px; }
+  .chochin .nm { color:#3a2a25; font-size:12px; }
+  .chochin.s-open .lamp { box-shadow:0 0 0 5px rgba(242,203,210,.3), 0 0 32px 9px rgba(242,203,210,.45); }
+  .chochin.s-home .lamp { background-color:color-mix(in srgb, var(--accent-pale) 62%, var(--accent)); }
+  .chochin.s-home .nm { color:var(--face); }
+  .chochin.s-shut .lamp { background-color:#6b6560; transform:scaleY(.84); box-shadow:none; }
+  .chochin.s-shut .nm { color:#e2ded9; } .chochin.s-shut .mon { opacity:.55; }
+  .chochin.s-warn .lamp { background-color:var(--accent); }
+  .chochin.s-warn .nm { color:var(--face); }
+
+  /* 木札 */
+  .kifuda .frame { background:var(--face); }
+  .kifuda .rail { position:absolute; top:26px; left:0; right:0; height:7px; background:var(--wood); }
+  .kifuda .peg { position:absolute; top:22px; left:50%; width:9px; height:15px; margin-left:-4.5px;
+    border-radius:3px; background:#7c5a3c; z-index:2; }
+  .kifuda .tag { position:absolute; top:34px; left:50%; width:94px; height:118px; margin-left:-47px;
+    display:grid; place-items:center; align-content:center; gap:5px; padding:14px 8px 8px;
+    border:2px solid var(--ink); background:var(--wood-pale);
+    clip-path:polygon(50% 0, 100% 13%, 100% 100%, 0 100%, 0 13%);
+    transform-origin:50% 0; transition:transform 300ms ease; }
+  .kifuda .mon { width:46px; height:46px; }
+  .kifuda .nm { color:#3a2a25; font-size:12px; }
+  .kifuda.s-home .tag { background:var(--accent-pale); }
+  .kifuda.s-shut .tag { background:#b8ada0; transform:rotate(9deg); }
+  .kifuda.s-shut .nm { opacity:.62; } .kifuda.s-shut .mon { opacity:.45; }
+  .kifuda.s-warn .tag { background:var(--accent); transform:rotate(-4deg); }
+  .kifuda.s-warn .nm { color:var(--face); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition-duration:1ms !important; } }
+  .card .mon .sakura { width:100%; height:100%; }
+</style>
+<script>
+  addEventListener("DOMContentLoaded", () => {
+    for (const el of document.querySelectorAll(".appmark")) {
+      el.outerHTML = Sakura.app(Sakura.glyphs[el.dataset.glyph], "", "");
+    }
+  });
+</script>
+
+<div class="masthead">
+  <h1>App cards — sheet 05</h1>
+  <p>Three ways an app can present itself, each shown twice: as the household sees it, and as you see it in admin where private and disabled have to be unmissable. Every concept encodes state in <em>form</em> — position, light, angle — not only colour. Each app carries its own sprig as a crest, and alerts stamp the top-right corner.</p>
+</div>
+<section class="concept">
+  <h2><span class="kanji">暖簾</span>Noren <em>— the shop curtain</em></h2>
+  <p class="blurb">A noren hangs out when the shop is open and comes in when it closes — the most literal status object in the vocabulary. Panels parted means you can walk in from the street; closed means the house only; no curtain at all means nothing is running. The app's sprig is its crest, printed on the cloth the way a shop's 紋 always is.</p>
+  <h3>Public catalog <small>what the household sees</small></h3>
+  <div class="row"><article class="card noren v-public s-open" style="--bloom:var(--accent-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="notes"></span></span><b class="nm">Kimono Notes</b></div><span class="alert">3</span><div class="cap-line"><b>Kimono Notes</b><small>Open to the street</small></div></article><article class="card noren v-public s-home" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="photos"></span></span><b class="nm">Photos</b></div><div class="cap-line"><b>Photos</b><small>Home only</small></div></article><article class="card noren v-public s-shut" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="recipes"></span></span><b class="nm">Recipes</b></div><div class="cap-line"><b>Recipes</b><small>Not running</small></div></article></div>
+  <h3>Admin <small>state has to be unmissable</small></h3>
+  <div class="row admin"><article class="card noren v-admin s-open" style="--bloom:var(--accent-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="notes"></span></span><b class="nm">Kimono Notes</b></div><span class="alert">3</span><div class="info"><b class="app">Kimono Notes</b><span class="seal">Public</span><span class="meta addr">notes.house.net</span></div></article><article class="card noren v-admin s-home" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="photos"></span></span><b class="nm">Photos</b></div><div class="info"><b class="app">Photos</b><span class="seal">Private</span><span class="meta note">home only</span></div></article><article class="card noren v-admin s-shut" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="recipes"></span></span><b class="nm">Recipes</b></div><div class="info"><b class="app">Recipes</b><span class="seal">Disabled</span><span class="meta note">installed, not running</span></div></article><article class="card noren v-admin s-warn" style="--bloom:var(--accent-pale)"><div class="frame"><span class="rod"></span><span class="pn l"></span><span class="pn r"></span><span class="glow"></span><span class="hook"></span><span class="mon"><span class="appmark" data-glyph="outline"></span></span><b class="nm">Outline</b></div><span class="alert">1</span><div class="info"><b class="app">Outline</b><span class="seal">Needs attention</span><span class="meta warn">tunnel is gone</span></div></article></div>
+</section>
+<section class="concept">
+  <h2><span class="kanji">提灯</span>Chōchin <em>— the paper lantern</em></h2>
+  <p class="blurb">Lit or unlit, readable across a room and across a grid. An unlit lantern also slumps, so the state survives greyscale. Lanterns carry the crest too, so the sprig sits on the paper.</p>
+  <h3>Public catalog <small>what the household sees</small></h3>
+  <div class="row"><article class="card chochin v-public s-open" style="--bloom:var(--accent-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="notes"></span></span><b class="nm">Kimono Notes</b></span><span class="cap b"></span></div><span class="alert">3</span><div class="cap-line"><b>Kimono Notes</b><small>Open to the street</small></div></article><article class="card chochin v-public s-home" style="--bloom:var(--wood-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="photos"></span></span><b class="nm">Photos</b></span><span class="cap b"></span></div><div class="cap-line"><b>Photos</b><small>Home only</small></div></article><article class="card chochin v-public s-shut" style="--bloom:var(--wood-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="recipes"></span></span><b class="nm">Recipes</b></span><span class="cap b"></span></div><div class="cap-line"><b>Recipes</b><small>Not running</small></div></article></div>
+  <h3>Admin <small>state has to be unmissable</small></h3>
+  <div class="row admin"><article class="card chochin v-admin s-open" style="--bloom:var(--accent-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="notes"></span></span><b class="nm">Kimono Notes</b></span><span class="cap b"></span></div><span class="alert">3</span><div class="info"><b class="app">Kimono Notes</b><span class="seal">Public</span><span class="meta addr">notes.house.net</span></div></article><article class="card chochin v-admin s-home" style="--bloom:var(--wood-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="photos"></span></span><b class="nm">Photos</b></span><span class="cap b"></span></div><div class="info"><b class="app">Photos</b><span class="seal">Private</span><span class="meta note">home only</span></div></article><article class="card chochin v-admin s-shut" style="--bloom:var(--wood-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="recipes"></span></span><b class="nm">Recipes</b></span><span class="cap b"></span></div><div class="info"><b class="app">Recipes</b><span class="seal">Disabled</span><span class="meta note">installed, not running</span></div></article><article class="card chochin v-admin s-warn" style="--bloom:var(--accent-pale)"><div class="frame"><span class="cap t"></span><span class="lamp"><span class="mon"><span class="appmark" data-glyph="outline"></span></span><b class="nm">Outline</b></span><span class="cap b"></span></div><span class="alert">1</span><div class="info"><b class="app">Outline</b><span class="seal">Needs attention</span><span class="meta warn">tunnel is gone</span></div></article></div>
+</section>
+<section class="concept">
+  <h2><span class="kanji">木札</span>Kifuda <em>— the wooden tag</em></h2>
+  <p class="blurb">The key-board tag at an inn: face-out when the room is in use, knocked askew when it is not. Densest of the three, so it is the only one that would survive a forty-app admin list.</p>
+  <h3>Public catalog <small>what the household sees</small></h3>
+  <div class="row"><article class="card kifuda v-public s-open" style="--bloom:var(--accent-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="notes"></span></span><b class="nm">Kimono Notes</b></span></div><span class="alert">3</span><div class="cap-line"><b>Kimono Notes</b><small>Open to the street</small></div></article><article class="card kifuda v-public s-home" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="photos"></span></span><b class="nm">Photos</b></span></div><div class="cap-line"><b>Photos</b><small>Home only</small></div></article><article class="card kifuda v-public s-shut" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="recipes"></span></span><b class="nm">Recipes</b></span></div><div class="cap-line"><b>Recipes</b><small>Not running</small></div></article></div>
+  <h3>Admin <small>state has to be unmissable</small></h3>
+  <div class="row admin"><article class="card kifuda v-admin s-open" style="--bloom:var(--accent-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="notes"></span></span><b class="nm">Kimono Notes</b></span></div><span class="alert">3</span><div class="info"><b class="app">Kimono Notes</b><span class="seal">Public</span><span class="meta addr">notes.house.net</span></div></article><article class="card kifuda v-admin s-home" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="photos"></span></span><b class="nm">Photos</b></span></div><div class="info"><b class="app">Photos</b><span class="seal">Private</span><span class="meta note">home only</span></div></article><article class="card kifuda v-admin s-shut" style="--bloom:var(--wood-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="recipes"></span></span><b class="nm">Recipes</b></span></div><div class="info"><b class="app">Recipes</b><span class="seal">Disabled</span><span class="meta note">installed, not running</span></div></article><article class="card kifuda v-admin s-warn" style="--bloom:var(--accent-pale)"><div class="frame"><span class="rail"></span><span class="peg"></span><span class="tag"><span class="mon"><span class="appmark" data-glyph="outline"></span></span><b class="nm">Outline</b></span></div><span class="alert">1</span><div class="info"><b class="app">Outline</b><span class="seal">Needs attention</span><span class="meta warn">tunnel is gone</span></div></article></div>
+</section>

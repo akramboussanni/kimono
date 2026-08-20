@@ -1,0 +1,195 @@
+<meta charset="utf-8">
+<title>Composition Law</title>
+<script src="sakura.js"></script>
+<style>
+  :root {
+    --ink:#24221f; --ink-soft:#5b524d; --faint:#8b6d67;
+    --ground:#fff8f5; --sheet:#fffdfb; --hair:#ded0be;
+    --wood:#d8b77f; --wood-pale:#ead2aa;
+    --accent:#a84d63; --accent-pale:#f2cbd2; --moss:#5c7150;
+    --ma-1:4px; --ma-2:8px; --ma-3:14px; --ma-4:22px; --ma-5:34px; --ma-6:56px;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:var(--ma-6) clamp(20px,5vw,64px) 130px; color:var(--ink); background:var(--ground); font-family:var(--ui); }
+  h1 { margin:0 0 var(--ma-2); font-size:16px; font-weight:700; }
+  .lede { max-width:74ch; margin:0 0 var(--ma-6); color:var(--faint); font-size:13px; line-height:1.6; }
+  section { padding-top:var(--ma-5); margin-top:var(--ma-5); border-top:1px solid var(--hair); }
+  h2 { margin:0 0 var(--ma-2); font-size:13px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; }
+  h2 .k { margin-right:10px; font-family:var(--serif); font-size:19px; letter-spacing:0; text-transform:none; }
+  p.t { max-width:74ch; margin:0 0 var(--ma-4); color:var(--ink-soft); font-size:13px; line-height:1.65; }
+  p.t b { color:var(--accent); }
+  .pair { display:flex; flex-wrap:wrap; gap:var(--ma-5); margin-bottom:var(--ma-4); }
+  .case { flex:1; min-width:300px; }
+  .tag { display:inline-block; margin-bottom:var(--ma-2); padding:3px 9px; font-size:10px; font-weight:750; letter-spacing:.12em; }
+  .no  { color:#7c2f42; background:var(--accent-pale); }
+  .yes { color:#31452a; background:#dbe4d4; }
+  .why { margin:var(--ma-2) 0 0; color:var(--faint); font-size:12px; line-height:1.5; }
+
+  /* the three weights */
+  .law { display:flex; flex-wrap:wrap; gap:var(--ma-4); margin-bottom:var(--ma-4); }
+  .law div { width:210px; padding:var(--ma-3); background:var(--sheet); }
+  .law div b { display:block; margin-bottom:var(--ma-1); font-size:13px; }
+  .law div span { color:var(--faint); font-size:11.5px; line-height:1.5; }
+  .law .w3 { border:3px solid var(--ink); }
+  .law .w2 { border:2px solid var(--ink); }
+  .law .w1 { border:1px solid var(--hair); }
+
+  /* demo bits */
+  .grid6 { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--ma-3); }
+  .cell { padding:var(--ma-3); background:var(--sheet); font-size:12px; }
+  .cell b { display:block; font-size:13px; }
+  .cell small { display:block; margin-top:3px; color:var(--faint); font-size:11px; }
+  .fence .cell { border:3px solid var(--ink); }
+  .calm .cell { border:1px solid var(--hair); }
+
+  .nest-bad { padding:var(--ma-3); border:3px solid var(--ink); background:var(--sheet); }
+  .nest-bad .in { padding:var(--ma-3); border:3px solid var(--ink); background:var(--sheet); }
+  .nest-bad .in + .in { margin-top:var(--ma-3); }
+  .tray { border:3px solid var(--ink); background:var(--sheet); }
+  .tray .comp { padding:var(--ma-3); border-bottom:2px solid var(--ink); }
+  .tray .comp:last-child { border-bottom:0; }
+
+  .rank-bad, .rank-good { padding:var(--ma-3); background:var(--sheet); }
+  .rank-bad { border:2px solid var(--ink); } .rank-good { border:1px solid var(--hair); }
+  .rank-bad .row, .rank-good .row { display:flex; align-items:center; justify-content:space-between; gap:var(--ma-3); padding:var(--ma-2) 0; }
+  .rank-bad .row + .row, .rank-good .row + .row { border-top:2px solid var(--ink); }
+  .rank-good .row + .row { border-top:1px solid var(--hair); }
+  .btn { padding:7px 14px; border:2px solid var(--ink); background:var(--accent-pale); font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+
+  /* admin: now vs law */
+  .adm { max-width:520px; }
+  .adm .hd { padding:var(--ma-3) var(--ma-4); font-family:var(--serif); font-size:18px; font-weight:600; }
+  .now { border:3px solid var(--ink); background:var(--sheet); box-shadow:6px 6px 0 rgba(36,34,31,.12); }
+  .now .sec { display:grid; grid-template-columns:56px 1fr; border-top:2px solid var(--ink); }
+  .now .tab { display:grid; place-items:center; background:var(--ink); border-right:2px solid var(--ink); }
+  .now .tab span { color:var(--sheet); font:600 12px/1 var(--serif); letter-spacing:.3em; text-transform:uppercase; writing-mode:vertical-rl; }
+  .now .bd { padding:var(--ma-4); }
+  .now .fld { display:block; margin-bottom:var(--ma-2); font-size:12px; color:var(--faint); }
+  .now input { width:100%; height:42px; padding:0 10px; border:2px solid var(--ink); background:var(--sheet); font:inherit; font-size:14px; }
+  .now .ft { display:flex; justify-content:flex-end; padding:var(--ma-3) var(--ma-4); border-top:2px solid var(--ink); background:var(--wood-pale); }
+
+  .law-adm { border:3px solid var(--ink); background:var(--sheet); box-shadow:6px 6px 0 rgba(36,34,31,.12); }
+  .law-adm .sec { display:grid; grid-template-columns:56px 1fr; border-top:2px solid var(--ink); }
+  .law-adm .tab { display:grid; place-items:center; background:var(--wood-pale); border-right:2px solid var(--ink); }
+  .law-adm .tab span { color:var(--ink); font:600 11px/1 var(--serif); letter-spacing:.28em; text-transform:uppercase; writing-mode:vertical-rl; }
+  .law-adm .bd { padding:var(--ma-4); }
+  .law-adm .fld { display:block; margin-bottom:var(--ma-2); font-size:12px; color:var(--faint); }
+  .law-adm input { width:100%; height:42px; padding:0 10px; border:2px solid var(--ink); background:var(--sheet); font:inherit; font-size:14px; }
+  .law-adm .quiet { padding-top:var(--ma-3); margin-top:var(--ma-3); border-top:1px solid var(--hair); color:var(--faint); font-size:12px; }
+  .law-adm .ft { display:flex; justify-content:flex-end; padding:var(--ma-3) var(--ma-4); border-top:2px solid var(--ink); }
+</style>
+
+<h1>組 Kumi — how surfaces live together</h1>
+<p class="lede">型 said depth is edge weight. It did not say when to use which, so everything got the heavy edge and nothing was ranked. This is the missing law, and the answer to why the current admin panel feels arbitrary.</p>
+
+<section>
+  <h2><span class="k">何故</span>Why edges at all</h2>
+  <p class="t">Honestly: because you asked for thick borders, and it worked. The justification came after, but it holds — <b>paper stacks, it does not glow</b>. A drop shadow claims a surface is floating above another in space, which is a screen fiction; a visible edge claims one sheet is laid on another, which is what actually happens on a desk. Once that is the model, blur has no meaning and edge weight carries everything.</p>
+  <p class="t">The mistake was applying one weight to everything. A 3px frame around a passive region and a 2px border on a button say the same thing at the same volume, so the eye cannot tell what it may touch.</p>
+</section>
+
+<section>
+  <h2><span class="k">三重</span>The law: weight is touchability</h2>
+  <p class="t">Three weights, and the rule that assigns them is not decorative — it is <b>can I touch this</b>.</p>
+  <div class="law">
+    <div class="w3"><b>3px frame — ink</b><span>The outer boundary of a workspace. <b>One per screen region.</b> Never nested inside another frame.</span></div>
+    <div class="w2"><b>2px rule — ink</b><span>Anything you can touch: controls, switches, seals. And the seams between compartments of a tray.</span></div>
+    <div class="w1"><b>1px hairline — hair</b><span>Passive division inside a compartment. Separates, never encloses.</span></div>
+  </div>
+  <p class="t">Corollaries, all mechanical: <b>edges are shared, never doubled</b> — adjacent compartments meet on one seam. <b>A hairline never touches a frame</b>; if they would meet, drop the hairline. <b>Frames never nest.</b></p>
+</section>
+
+<section>
+  <h2><span class="k">格</span>Cards in a grid</h2>
+  <div class="pair">
+    <div class="case">
+      <span class="tag no">WRONG</span>
+      <div class="grid6 fence">
+        <div class="cell"><b>Notes</b><small>Running</small></div><div class="cell"><b>Photos</b><small>Running</small></div><div class="cell"><b>Recipes</b><small>Off</small></div>
+        <div class="cell"><b>Outline</b><small>Attention</small></div><div class="cell"><b>Paperless</b><small>Off</small></div><div class="cell"><b>Immich</b><small>Running</small></div>
+      </div>
+      <p class="why">Six frames is a fence. Each card claims to be the outer boundary of a workspace, so none of them is. This is what the app catalog does today.</p>
+    </div>
+    <div class="case">
+      <span class="tag yes">RIGHT</span>
+      <div class="grid6 calm">
+        <div class="cell"><b>Notes</b><small>Running</small></div><div class="cell"><b>Photos</b><small>Running</small></div><div class="cell"><b>Recipes</b><small>Off</small></div>
+        <div class="cell"><b>Outline</b><small>Attention</small></div><div class="cell"><b>Paperless</b><small>Off</small></div><div class="cell"><b>Immich</b><small>Running</small></div>
+      </div>
+      <p class="why">Free-standing items on the ground are sheets with hairlines. The grid is the structure; the cards do not each need to announce themselves.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="k">重</span>Nesting</h2>
+  <div class="pair">
+    <div class="case">
+      <span class="tag no">WRONG</span>
+      <div class="nest-bad"><div class="in"><b>General</b><br><small>a frame inside a frame</small></div><div class="in"><b>Access</b><br><small>and another</small></div></div>
+      <p class="why">Three boundaries fighting. The inner frames are the same weight as the outer, so the hierarchy inverts depending on which one your eye lands on first.</p>
+    </div>
+    <div class="case">
+      <span class="tag yes">RIGHT</span>
+      <div class="tray"><div class="comp"><b>General</b><br><small>compartments of one tray</small></div><div class="comp"><b>Access</b><br><small>sharing a single seam</small></div></div>
+      <p class="why">One frame owns the region; inside it, compartments share 2px seams. Two borders total instead of six, and the outer boundary stays unambiguous.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="k">序</span>Rank</h2>
+  <div class="pair">
+    <div class="case">
+      <span class="tag no">WRONG</span>
+      <div class="rank-bad">
+        <div class="row"><span>Run this application</span><button class="btn" type="button">Save</button></div>
+        <div class="row"><span>Allow outbound internet</span><button class="btn" type="button">Save</button></div>
+      </div>
+      <p class="why">The container, the dividers and the buttons all sit at 2px. Everything shouts, so the two things you can actually press do not stand out.</p>
+    </div>
+    <div class="case">
+      <span class="tag yes">RIGHT</span>
+      <div class="rank-good">
+        <div class="row"><span>Run this application</span><button class="btn" type="button">Save</button></div>
+        <div class="row"><span>Allow outbound internet</span><button class="btn" type="button">Save</button></div>
+      </div>
+      <p class="why">Passive things drop to hairline. The only 2px marks left on the surface are the two you can touch, so touchability is legible at a glance.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="k">改</span>The admin panel, now and under the law</h2>
+  <p class="t">Same content, same tray. What changes: the compartment label stops being solid ink (it was competing with the frame for outermost), inner divisions drop to hairline, and the footer loses its tint so the only heavy marks left are the frame, the seams, and the things you press.</p>
+  <div class="pair">
+    <div class="case">
+      <span class="tag no">NOW</span>
+      <div class="adm now">
+        <div class="hd">App settings</div>
+        <div class="sec"><div class="tab"><span>General</span></div><div class="bd">
+          <span class="fld">Name</span><input value="Kimono Notes"></div></div>
+        <div class="sec"><div class="tab"><span>Access</span></div><div class="bd">
+          <span class="fld">Reachable only inside your home.</span><button class="btn" type="button">Connect Cloudflare</button></div></div>
+        <div class="ft"><button class="btn" type="button">Save app setup</button></div>
+      </div>
+      <p class="why">Four competing heavy edges plus two solid ink blocks. The dark tabs read as the most important thing on screen, and they are labels.</p>
+    </div>
+    <div class="case">
+      <span class="tag yes">UNDER THE LAW</span>
+      <div class="adm law-adm">
+        <div class="hd">App settings</div>
+        <div class="sec"><div class="tab"><span>General</span></div><div class="bd">
+          <span class="fld">Name</span><input value="Kimono Notes">
+          <div class="quiet">Shown to everyone in the house.</div></div></div>
+        <div class="sec"><div class="tab"><span>Access</span></div><div class="bd">
+          <span class="fld">Reachable only inside your home.</span><button class="btn" type="button">Connect Cloudflare</button></div></div>
+        <div class="ft"><button class="btn" type="button">Save app setup</button></div>
+      </div>
+      <p class="why">The tab keeps the vertical label but in wood, so it reads as material rather than as the loudest ink on the page. Ink is now spent only on the frame, the seams, and the two buttons.</p>
+    </div>
+  </div>
+</section>

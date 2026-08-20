@@ -13,76 +13,19 @@ entries:
         name: Default - Authentication flow
       required: true
 
-  - id: kimono-local-authentication-flow
-    model: authentik_flows.flow
-    state: present
-    identifiers:
-      slug: kimono-local-authentication-flow
-    attrs:
-      name: Kimono local authentication
-      title: おかえりなさい · Welcome home
-      designation: authentication
-      authentication: none
-      layout: content_left
-      background: http://localhost:3000/art/sakura-branch-v2.png
-
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf kimono-local-authentication-flow
-      stage: !Find [authentik_stages_identification.identificationstage, [name, default-authentication-identification]]
-      order: 10
-
-  - id: kimono-local-password-binding
-    model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf kimono-local-authentication-flow
-      stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
-      order: 20
-    attrs:
-      re_evaluate_policies: true
-
-  - id: kimono-local-mfa-binding
-    model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf kimono-local-authentication-flow
-      stage: !Find [authentik_stages_authenticator_validate.authenticatorvalidatestage, [name, default-authentication-mfa-validation]]
-      order: 30
-
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf kimono-local-authentication-flow
-      stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
-      order: 100
-
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf kimono-local-password-binding
-      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-authentication-flow-password-stage]]
-      order: 10
-    attrs:
-      failure_result: true
-
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf kimono-local-mfa-binding
-      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-authentication-flow-authenticator-validate-stage]]
-      order: 10
-    attrs:
-      failure_result: true
-
   - id: kimono-local-brand
     model: authentik_brands.brand
     state: present
     identifiers:
       domain: localhost
     attrs:
-      default: true
+      default: false
       branding_title: Kimono
-      branding_logo: http://localhost:3000/kimono-sakura-mark.svg
+      branding_logo: http://localhost:3000/brand/kimono-logo.svg
       branding_favicon: http://localhost:3000/kimono-sakura-mark.svg
-      branding_default_flow_background: http://localhost:3000/art/sakura-branch-v2.png
+      branding_default_flow_background: http://localhost:3000/brand/kimono-login-background.svg
       branding_custom_css: !File /blueprints/kimono/kimono.css
-      flow_authentication: !KeyOf kimono-local-authentication-flow
+      flow_authentication: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
       flow_invalidation: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
       flow_recovery: !Find [authentik_flows.flow, [slug, default-recovery-flow]]
       flow_unenrollment: !Find [authentik_flows.flow, [slug, default-unenrollment-flow]]

@@ -1,0 +1,184 @@
+<meta charset="utf-8">
+<title>Page Transitions</title>
+<style>
+  :root {
+    --ink: #24221f; --paper: #fff8f5; --face: #fffdfb; --wood: #d8b77f;
+    --accent: #a84d63; --accent-pale: #f2cbd2; --hair: #ded0be; --faint: #8b6d67;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  body { margin: 0; padding: 44px clamp(20px,5vw,64px) 120px; color: var(--ink); background: var(--paper); font-family: var(--ui); }
+  .masthead { margin-bottom: 48px; }
+  .masthead h1 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+  .masthead p { max-width: 64ch; margin: 0; color: var(--faint); font-size: 13px; line-height: 1.55; }
+  .sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(316px,1fr)); gap: 54px 32px; margin: 0; padding: 0; list-style: none; }
+  .name { margin: 14px 0 0; font-size: 13px; font-weight: 650; }
+  .name .num { margin-right: 9px; color: var(--faint); font-weight: 500; }
+  .hint { margin: 5px 0 0; color: var(--faint); font-size: 12px; line-height: 1.45; }
+  .replay { margin-top: 9px; padding: 5px 10px; border: 1px solid var(--hair); background: var(--face); color: var(--faint); font: inherit; font-size: 11px; cursor: pointer; }
+  .replay:hover { border-color: var(--accent); color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* One viewport, two pages, one effects layer. */
+  .vp { position: relative; width: 100%; max-width: 316px; aspect-ratio: 16/10; overflow: hidden; border: 2px solid var(--ink); background: var(--face); }
+  .pg { position: absolute; inset: 0; }
+  .pg.b { z-index: 0; display: flex; flex-direction: column; justify-content: center; gap: 9px; padding: 22px; background: var(--accent); color: var(--face); }
+  .pg.b strong { font-size: 19px; font-weight: 650; }
+  .pg.b i { display: block; height: 6px; border-radius: 3px; background: rgba(255,253,251,.32); }
+  .pg.b i:nth-of-type(1) { width: 78%; } .pg.b i:nth-of-type(2) { width: 54%; } .pg.b i:nth-of-type(3) { width: 66%; }
+  .pg.a { z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; background: var(--face); }
+  .pg.a span { font-size: 13px; font-weight: 650; }
+  .open { padding: 9px 20px; border: 2px solid var(--ink); background: var(--accent-pale); font: inherit; font-size: 13px; font-weight: 650; color: var(--ink); cursor: pointer; }
+  .fx { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+
+  /* T1 障子 — the page you are on IS the screen; it parts. */
+  .tx-shoji .pg.a { padding: 0; background: none; }
+  .tx-shoji .scr { position: absolute; top: 0; bottom: 0; width: 50%; background-color: var(--face);
+    background-image: linear-gradient(90deg, var(--hair) 0 1px, transparent 1px), linear-gradient(var(--hair) 0 1px, transparent 1px);
+    background-size: 40px 36px; transition: transform 620ms cubic-bezier(.35,.85,.25,1); }
+  .tx-shoji .scr.l { left: 0; border-right: 1px solid var(--ink); }
+  .tx-shoji .scr.r { right: 0; border-left: 1px solid var(--ink); }
+  .tx-shoji .plate { position: relative; z-index: 2; transition: opacity 200ms ease; }
+  .tx-shoji.go .scr.l { transform: translateX(-100%); }
+  .tx-shoji.go .scr.r { transform: translateX(100%); }
+  .tx-shoji.go .plate { opacity: 0; }
+
+  /* T2 花吹雪 — a squall of petals crosses, and the page has changed behind it. */
+  /* Wipe A away exactly where the squall has already passed — no cross-fade ghost. */
+  .tx-petals.go .pg.a { animation: wipe-a 900ms cubic-bezier(.35,.1,.4,1) both; }
+  @keyframes wipe-a { 0%, 16% { clip-path: inset(0 0 0 0); } 80%, 100% { clip-path: inset(0 0 0 100%); } }
+  .tx-petals .haze { position: absolute; inset: -4px; background: linear-gradient(90deg, transparent 0, var(--accent-pale) 20%, var(--accent-pale) 58%, transparent 88%); transform: translateX(-115%); }
+  .tx-petals.go .haze { animation: haze 900ms cubic-bezier(.35,.1,.4,1) both; }
+  @keyframes haze { 0% { transform: translateX(-115%); } 100% { transform: translateX(115%); } }
+  .tx-petals .petal { position: absolute; width: 15px; height: 11px; border-radius: 80% 20% 75% 25%;
+    background: var(--accent-pale); box-shadow: inset 0 0 0 1px var(--accent); opacity: 0; }
+  .tx-petals.go .petal { animation: gust 900ms cubic-bezier(.35,.1,.4,1) both; }
+  @keyframes gust {
+    0% { opacity: 0; transform: translate(-140px, 0) rotate(0); }
+    12% { opacity: 1; }
+    82% { opacity: 1; }
+    100% { opacity: 0; transform: translate(400px, var(--dy)) rotate(var(--rot)); }
+  }
+
+  /* T3 暖簾 — the curtain drops, you push through, it sways shut behind. */
+  .tx-noren .cloth { position: absolute; top: 0; bottom: 0; width: 50%; background: var(--ink); transform: translateY(-102%); }
+  .tx-noren .cloth::after { position: absolute; top: 0; right: 0; left: 0; height: 11px; content: ""; background: var(--wood); opacity: .5; }
+  .tx-noren .cloth.l { left: 0; } .tx-noren .cloth.r { right: 0; }
+  .tx-noren.go .cloth.l { animation: noren-l 1000ms cubic-bezier(.3,.9,.3,1) both; }
+  .tx-noren.go .cloth.r { animation: noren-r 1000ms cubic-bezier(.3,.9,.3,1) both; }
+  .tx-noren .pg.a { transition: opacity 80ms linear 300ms; }
+  .tx-noren.go .pg.a { opacity: 0; }
+  @keyframes noren-l {
+    0% { transform: translateY(-102%) } 26% { transform: translateY(0) }
+    40% { transform: translateY(0) rotate(0) } 100% { transform: translateX(-132%) rotate(-7deg) }
+  }
+  @keyframes noren-r {
+    0% { transform: translateY(-102%) } 26% { transform: translateY(0) }
+    40% { transform: translateY(0) rotate(0) } 100% { transform: translateX(132%) rotate(7deg) }
+  }
+
+  /* T4 掛軸 — the new page unrolls from its roller. */
+  .tx-scroll .pg.b { clip-path: inset(0 0 100% 0); transition: clip-path 780ms cubic-bezier(.3,.9,.25,1); }
+  .tx-scroll .roller { position: absolute; top: 0; right: -6px; left: -6px; height: 12px; background: var(--ink); border-radius: 3px; transform: translateY(-6px); transition: top 780ms cubic-bezier(.3,.9,.25,1); }
+  .tx-scroll .pg.a { transition: opacity 90ms linear; }
+  .tx-scroll.go .pg.a { opacity: 0; }
+  .tx-scroll.go .pg.b { clip-path: inset(0 0 0 0); }
+  .tx-scroll.go .roller { top: calc(100% - 6px); }
+
+  /* T5 墨 — ink floods the frame, then draws back off the new page. */
+  .tx-sumi .blot { position: absolute; top: 50%; left: 50%; width: 150%; aspect-ratio: 1; margin: -75% 0 0 -75%;
+    border-radius: 44% 56% 51% 49% / 52% 47% 53% 48%; background: var(--ink); transform: scale(0); }
+  .tx-sumi.go .blot { animation: blot 1100ms cubic-bezier(.4,0,.3,1) both; }
+  .tx-sumi .pg.a { transition: opacity 60ms linear 380ms; }
+  .tx-sumi.go .pg.a { opacity: 0; }
+  @keyframes blot {
+    0% { transform: scale(0) rotate(0); } 42% { transform: scale(1) rotate(24deg); }
+    58% { transform: scale(1) rotate(30deg); } 100% { transform: scale(0) rotate(56deg); }
+  }
+
+  /* T6 襖 — a sliding panel arrives and hits its stop. */
+  .tx-fusuma .pg.b { transform: translateX(100%); box-shadow: -3px 0 0 var(--ink); }
+  .tx-fusuma .pg.a { transition: transform 620ms cubic-bezier(.2,.9,.25,1); }
+  .tx-fusuma.go .pg.b { animation: fusuma 620ms cubic-bezier(.2,.9,.25,1) both; z-index: 4; }
+  .tx-fusuma.go .pg.a { transform: translateX(-24%); }
+  @keyframes fusuma { 0% { transform: translateX(100%) } 78% { transform: translateX(-2.5%) } 100% { transform: translateX(0) } }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }
+</style>
+
+<div class="masthead">
+  <h1>Page transitions — sheet 03</h1>
+  <p>Six ways for Open to become the page change itself, rather than a click followed by a load. Press Open in any frame; press Replay to run it again.</p>
+</div>
+
+<ul class="sheet" id="sheet"></ul>
+
+<script>
+  const DEST = '<strong>Kimono Notes</strong><i></i><i></i><i></i>';
+  const HOME = '<span>Kimono Notes</span><button class="open" type="button">Open</button>';
+
+  const SPECS = [
+    { id: "shoji", num: "T1", name: "障子 Shoji",
+      hint: "The page you are on is the screen. It parts, and the destination was always behind it.",
+      a: '<div class="scr l"></div><div class="scr r"></div><button class="open plate" type="button">Open</button>' },
+    { id: "petals", num: "T2", name: "花吹雪 Hanafubuki",
+      hint: "A squall of petals crosses the frame; the page has changed by the time it clears.", a: HOME },
+    { id: "noren", num: "T3", name: "暖簾 Noren",
+      hint: "The curtain drops, you push through it, and it sways aside behind you.", a: HOME },
+    { id: "scroll", num: "T4", name: "掛軸 Kakejiku",
+      hint: "The destination unrolls downward from its roller.", a: HOME },
+    { id: "sumi", num: "T5", name: "墨 Sumi",
+      hint: "Ink floods the frame, then draws back off to leave the new page.", a: HOME },
+    { id: "fusuma", num: "T6", name: "襖 Fusuma",
+      hint: "A sliding panel arrives from the side and lands against its stop.", a: HOME },
+  ];
+
+  const sheet = document.getElementById("sheet");
+  for (const s of SPECS) {
+    const li = document.createElement("li");
+    li.innerHTML =
+      '<div class="vp tx-' + s.id + '">' +
+        '<div class="pg b">' + DEST + '</div>' +
+        '<div class="pg a">' + s.a + '</div>' +
+        '<div class="fx"></div>' +
+      '</div>' +
+      '<p class="name"><span class="num">' + s.num + '</span>' + s.name + '</p>' +
+      '<p class="hint">' + s.hint + '</p>' +
+      '<button class="replay" type="button">↺ Replay</button>';
+    sheet.appendChild(li);
+
+    const vp = li.querySelector(".vp");
+    if (s.id === "petals") {
+      const fx = vp.querySelector(".fx");
+      const haze = document.createElement("div");
+      haze.className = "haze";
+      fx.appendChild(haze);
+      for (let i = 0; i < 46; i += 1) {
+        const p = document.createElement("span");
+        p.className = "petal";
+        p.style.top = (Math.random() * 96) + "%";
+        p.style.left = (Math.random() * 16 - 8) + "%";
+        p.style.setProperty("--dy", (Math.random() * 90 - 45).toFixed(0) + "px");
+        p.style.setProperty("--rot", (Math.random() * 900 - 450).toFixed(0) + "deg");
+        p.style.animationDelay = (Math.random() * 260).toFixed(0) + "ms";
+        fx.appendChild(p);
+      }
+    }
+    if (s.id === "scroll") {
+      const r = document.createElement("div");
+      r.className = "roller";
+      vp.querySelector(".fx").appendChild(r);
+    }
+    if (s.id === "noren") {
+      vp.querySelector(".fx").innerHTML = '<div class="cloth l"></div><div class="cloth r"></div>';
+    }
+    if (s.id === "sumi") {
+      vp.querySelector(".fx").innerHTML = '<div class="blot"></div>';
+    }
+
+    vp.querySelector(".open").addEventListener("click", () => vp.classList.add("go"));
+    li.querySelector(".replay").addEventListener("click", () => {
+      vp.classList.remove("go");
+      void vp.offsetWidth;
+    });
+  }
+</script>

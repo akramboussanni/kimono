@@ -74,6 +74,24 @@ func (r *Runner) Output(name string, args ...string) ([]byte, error) {
 	return stdout.Bytes(), nil
 }
 
+// OutputCombined returns stdout and stderr together, including when the command
+// fails, so callers can report the reason rather than a bare exit status.
+func (r *Runner) OutputCombined(name string, args ...string) ([]byte, error) {
+	if r.DryRun {
+		_, _ = fmt.Fprintf(r.Stdout, "+ %s\n", shellLine(name, args))
+		return nil, nil
+	}
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = r.Stdin
+	var combined bytes.Buffer
+	cmd.Stdout = &combined
+	cmd.Stderr = &combined
+	if err := cmd.Run(); err != nil {
+		return combined.Bytes(), fmt.Errorf("%s: %w", shellLine(name, args), err)
+	}
+	return combined.Bytes(), nil
+}
+
 func (r *Runner) Exists(name string) bool {
 	_, err := exec.LookPath(name)
 	return err == nil

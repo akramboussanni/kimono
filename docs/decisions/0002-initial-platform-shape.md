@@ -1,6 +1,6 @@
 # ADR 0002: Start with a small platform kernel
 
-- Status: Accepted for the initial scaffold
+- Status: Superseded by ADR 0003
 - Date: 2026-08-04
 
 ## Context

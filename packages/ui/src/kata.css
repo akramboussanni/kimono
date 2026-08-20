@@ -1,0 +1,18 @@
+/**
+ * 型 Kata — the stylesheet that enforces the design system.
+ *
+ * Each part sits beside the component it styles. Import this one file; the
+ * order matters, because the tokens must land before anything reads them.
+ *
+ * See docs/design-system.md for the contract these enforce.
+ */
+
+@import "./styles/tokens.css";
+@import "./styles/kumi.css";
+@import "./styles/door.css";
+@import "./styles/joint.css";
+@import "./styles/seal.css";
+@import "./styles/crossing.css";
+@import "./styles/app-identity.css";
+@import "./styles/rows.css";
+@import "./styles/form.css";

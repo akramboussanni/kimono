@@ -1,0 +1,62 @@
+/* ─────────────────────────────────────────────────────────────
+   障子 Door — goes somewhere. Chrome only, never in content.
+   A labelled door carries its name on a 表札 nameplate, mounted on the
+   door itself. A label floating beside the leaves is not a door.
+   ───────────────────────────────────────────────────────────── */
+
+.k-door {
+  position: relative;
+  min-width: 58px;
+  height: 46px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--k-ma-5);
+  overflow: hidden;
+  border: var(--k-rule) solid var(--k-ink);
+  background: var(--k-accent-pale);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--k-t-element) ease;
+}
+
+.k-door > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 51%;
+  background-color: var(--k-sheet);
+  background-image:
+    linear-gradient(90deg, var(--k-hair) 0 1px, transparent 1px),
+    linear-gradient(var(--k-hair) 0 1px, transparent 1px);
+  background-size: 12px 11px;
+  transition: transform var(--k-t-state) var(--k-ease-in);
+}
+
+.k-door > i:nth-of-type(1) { left: 0; }
+.k-door > i:nth-of-type(2) { right: 0; }
+.k-door:hover, .k-door:focus-visible { background: color-mix(in srgb, var(--k-accent-pale) 62%, var(--k-accent)); }
+.k-door:hover > i:nth-of-type(1), .k-door:focus-visible > i:nth-of-type(1) { transform: translateX(-30%); }
+.k-door:hover > i:nth-of-type(2), .k-door:focus-visible > i:nth-of-type(2) { transform: translateX(30%); }
+.k-door:focus-visible { outline: var(--k-rule) solid var(--k-accent); outline-offset: 3px; }
+
+/* 表札 — the name is mounted on the door. */
+.k-door > .k-plate {
+  position: relative;
+  z-index: 2;
+  padding: 5px 10px;
+  border: var(--k-hairline) solid var(--k-ink);
+  background: var(--k-sheet);
+  color: var(--k-ink);
+  font: 700 12px/1 var(--k-sans);
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 rgba(36, 34, 31, .16);
+  transition: background-color var(--k-t-state) ease, color var(--k-t-state) ease;
+}
+
+/* You are inside this room: the screens stand open and the plate is inked. */
+.k-door.k-here { cursor: default; background: var(--k-accent); }
+.k-door.k-here > i:nth-of-type(1) { transform: translateX(-72%); }
+.k-door.k-here > i:nth-of-type(2) { transform: translateX(72%); }
+.k-door.k-here > .k-plate { border-width: var(--k-rule); box-shadow: 2px 2px 0 rgba(36, 34, 31, .3); }

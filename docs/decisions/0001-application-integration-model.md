@@ -26,6 +26,7 @@ The registry records two separate ideas:
 
 - `kind`: `native`, `fork`, or `connected`
 - `presentation`: `standalone` or `embedded`
+- `brand.colors`: three app-owned colors rendered by the shared bloom mark
 
 Embedding is an opt-in capability for small, trusted applications with an
 explicit embed mode. It is not an integration strategy. An embedded app must
@@ -39,5 +40,7 @@ permissions policy, and document its authentication and navigation behavior.
   make navigation coherent without forcing every app into one browser document.
 - Forks must integrate the Kimono shell directly to claim a native experience.
 - Apps that cannot support the contract remain honestly labeled as connected.
+- Kimono Notes is the first connected application: Outline owns the notes UI
+  and storage while Kimono provides deployment, OIDC SSO, branding, and launch.
 - A future cross-app bridge may use a versioned `postMessage` protocol, but it
   will not be invented until a real embedded application requires it.

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="paper" x2="1" y2="1"><stop stop-color="#f9e5e8"/><stop offset="1" stop-color="#f1cbd2"/></linearGradient>
+    <radialGradient id="sun"><stop stop-color="#e7a5b0"/><stop offset="1" stop-color="#d77b8c"/></radialGradient>
+    <filter id="grain"><feTurbulence baseFrequency=".7" numOctaves="3" seed="21"/><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .08 0"/></filter>
+    <g id="flower">
+      <g fill="#f8dfe3" stroke="#c96d80" stroke-width="4">
+        <ellipse cx="0" cy="-28" rx="13" ry="25"/><ellipse cx="0" cy="-28" rx="13" ry="25" transform="rotate(72)"/>
+        <ellipse cx="0" cy="-28" rx="13" ry="25" transform="rotate(144)"/><ellipse cx="0" cy="-28" rx="13" ry="25" transform="rotate(216)"/>
+        <ellipse cx="0" cy="-28" rx="13" ry="25" transform="rotate(288)"/>
+      </g>
+      <circle r="9" fill="#7a3f50"/>
+    </g>
+  </defs>
+  <rect width="1600" height="1100" fill="url(#paper)"/>
+  <circle cx="1130" cy="510" r="255" fill="url(#sun)" opacity=".6"/>
+  <g fill="none" stroke="#5f3441" stroke-linecap="round">
+    <path d="M1650 80C1390 120 1280 245 1170 410S890 725 635 760 315 915 80 1100" stroke-width="25" opacity=".82"/>
+    <path d="M1380 174c-56 122-120 181-238 236M1015 593c-70-100-153-151-280-158M690 754c-65-85-146-111-254-91" stroke-width="14" opacity=".72"/>
+    <path d="M1450 130c-52 73-82 109-154 139M1190 382c-36 92-89 145-176 193M837 718c-42 75-99 119-181 145" stroke-width="8" opacity=".65"/>
+  </g>
+  <g>
+    <use href="#flower" transform="translate(1320 220) scale(1.35) rotate(7)"/>
+    <use href="#flower" transform="translate(1160 400) scale(1.05) rotate(-13)"/>
+    <use href="#flower" transform="translate(990 584) scale(1.25) rotate(19)"/>
+    <use href="#flower" transform="translate(755 722) scale(.9) rotate(-7)"/>
+    <use href="#flower" transform="translate(472 820) scale(1.15) rotate(14)"/>
+    <use href="#flower" transform="translate(1270 302) scale(.65) rotate(24)"/>
+    <use href="#flower" transform="translate(835 470) scale(.7) rotate(-20)"/>
+  </g>
+  <g fill="#d77b8c" opacity=".75">
+    <ellipse cx="1070" cy="690" rx="11" ry="22" transform="rotate(32 1070 690)"/>
+    <ellipse cx="925" cy="332" rx="9" ry="19" transform="rotate(-24 925 332)"/>
+    <ellipse cx="675" cy="570" rx="8" ry="17" transform="rotate(55 675 570)"/>
+    <ellipse cx="390" cy="965" rx="10" ry="21" transform="rotate(-18 390 965)"/>
+  </g>
+  <rect width="1600" height="1100" filter="url(#grain)" opacity=".22"/>
+</svg>

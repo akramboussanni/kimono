@@ -103,6 +103,8 @@ func containsAddress(addresses []string, expected string) bool {
 	return false
 }
 
+// configuredDomains returns the hostnames the appliance itself serves.
+// Application hostnames are published through tunnels and are not checked here.
 func (m *Manager) configuredDomains() (string, string, string, error) {
 	values, err := readServerEnvironment(m.envPath())
 	if err != nil {

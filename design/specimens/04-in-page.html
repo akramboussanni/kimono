@@ -1,0 +1,309 @@
+<meta charset="utf-8">
+<title>Transitions In Place</title>
+<style>
+  :root {
+    --ink:#24221f; --paper:#fff8f5; --face:#fffdfb; --wood:#d8b77f; --wood-pale:#ead2aa;
+    --accent:#a84d63; --accent-pale:#f2cbd2; --hair:#ded0be; --faint:#8b6d67;
+    --ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; color:var(--ink); background:var(--paper); font-family:var(--ui); }
+
+  /* Chrome that never transitions. */
+  .topbar { position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:28px;
+    height:64px; padding:0 clamp(16px,4vw,40px); background:var(--face); border-bottom:2px solid var(--ink); }
+  .brand { display:flex; align-items:center; gap:10px; font-family:var(--serif); font-size:17px; letter-spacing:.16em; }
+  .mon { width:20px; height:20px; border-radius:50%; background:var(--accent-pale); box-shadow:inset 0 0 0 2px var(--accent); }
+  .nav { display:flex; gap:4px; margin-left:8px; }
+  .nav button { padding:7px 15px; border:2px solid transparent; background:none; font:inherit; font-size:13px; font-weight:650; color:var(--ink); cursor:pointer; }
+  .nav button[aria-current="page"] { border-color:var(--ink); background:var(--accent-pale); }
+  /* The door is a control, and the big screens are the same door at room scale. */
+  .door { position:relative; width:52px; height:34px; margin-left:6px; padding:0; overflow:hidden;
+    border:2px solid var(--ink); background:var(--wood); cursor:pointer; }
+  .door .leaf { position:absolute; top:0; bottom:0; width:50%; background-color:var(--face);
+    background-image:linear-gradient(90deg,var(--hair) 0 1px,transparent 1px),linear-gradient(var(--hair) 0 1px,transparent 1px);
+    background-size:11px 10px; transition:transform 200ms ease; }
+  .door .leaf.l { left:0; } .door .leaf.r { right:0; }
+  .door:hover .leaf.l { transform:translateX(-26%); }
+  .door:hover .leaf.r { transform:translateX(26%); }
+  .door .jamb { position:absolute; top:0; bottom:0; left:50%; width:2px; margin-left:-1px; background:var(--ink); opacity:.5; }
+  .door.working .leaf.l { animation:leaf-l 900ms cubic-bezier(.35,.85,.25,1) both; }
+  .door.working .leaf.r { animation:leaf-r 900ms cubic-bezier(.35,.85,.25,1) both; }
+  @keyframes leaf-l { 0%{transform:translateX(-26%)} 34%,46%{transform:translateX(0)} 100%{transform:translateX(-26%)} }
+  @keyframes leaf-r { 0%{transform:translateX(26%)} 34%,46%{transform:translateX(0)} 100%{transform:translateX(26%)} }
+  .brand.alt { font-family:var(--ui); font-size:15px; font-weight:800; letter-spacing:.02em; }
+  .mon.alt { border-radius:3px; background:var(--wood); box-shadow:inset 0 0 0 2px var(--ink); }
+  .who { margin-left:auto; display:flex; align-items:center; gap:9px; font-size:12px; color:var(--faint); }
+  .who i { width:26px; height:26px; display:grid; place-items:center; border-radius:50%; background:var(--ink); color:var(--face); font-size:11px; font-weight:700; font-style:normal; }
+
+  /* Only this region changes. */
+  .stage { position:relative; overflow:hidden; min-height:calc(100vh - 64px - 58px); }
+  .view { position:absolute; inset:0; padding:clamp(22px,4vw,46px); background:var(--paper); visibility:hidden; }
+  .view.active { visibility:visible; }
+  .view h1 { margin:0 0 4px; font-family:var(--serif); font-size:clamp(26px,3.4vw,38px); font-weight:600; }
+  .view .sub { margin:0 0 30px; color:var(--faint); font-size:13px; }
+  .tiles { display:flex; flex-wrap:wrap; gap:18px; }
+  .tile { width:190px; padding:18px; border:2px solid var(--ink); background:var(--face); }
+  .tile b { display:block; font-size:15px; }
+  .tile small { display:block; margin:5px 0 15px; color:var(--faint); font-size:11px; line-height:1.45; }
+  .open { padding:8px 17px; border:2px solid var(--ink); background:var(--accent-pale); font:inherit; font-size:12px; font-weight:650; color:var(--ink); cursor:pointer; }
+  .open:hover { background:var(--accent); color:var(--face); }
+  .back { margin-bottom:18px; padding:7px 13px; border:1px solid var(--hair); background:var(--face); font:inherit; font-size:12px; color:var(--ink); cursor:pointer; }
+  .notes { display:grid; gap:10px; max-width:620px; margin-top:24px; }
+  .note { padding:14px 16px; border-left:3px solid var(--accent); background:var(--face); }
+  .note b { display:block; font-size:13px; }
+  .note span { display:block; margin-top:4px; color:var(--faint); font-size:12px; }
+  button:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* Controls, not part of the app. */
+  .rig { position:sticky; bottom:0; z-index:70; display:flex; flex-wrap:wrap; align-items:center; gap:16px;
+    height:58px; padding:0 clamp(16px,4vw,40px); border-top:1px solid var(--hair); background:var(--face); font-size:12px; color:var(--faint); }
+  .rig select { font:inherit; padding:5px 8px; border:1px solid var(--hair); background:var(--face); color:var(--ink); }
+  .rig label { display:flex; align-items:center; gap:7px; }
+
+  /* ---- effects layer ---- */
+  .fx { position:absolute; inset:0; z-index:30; pointer-events:none; }
+  .fx.window { position:fixed; inset:0; z-index:60; }
+
+  .petal { position:absolute; width:var(--sz); height:var(--sz); opacity:0; }
+  /* Transform and opacity run as SEPARATE animations. Sharing one set of keyframes
+     meant the opacity stop at 12% also split the transform timeline, restarting the
+     easing curve there. And easing belongs per-segment: a timing function on the
+     shorthand is re-applied between every pair of keyframes, so the motion
+     accelerates and decelerates four times instead of flowing through. */
+  .go-hanafubuki .petal { animation:gust-move 1900ms linear both, gust-fade 1900ms linear both; }
+  @keyframes gust-move {
+    0%   { transform:translate(-125vw,var(--y0)) rotate(0deg) scaleX(1);
+           animation-timing-function:cubic-bezier(.12,.55,.28,1); }
+    30%  { transform:translate(0,0) rotate(var(--r1)) scaleX(var(--f1));
+           animation-timing-function:linear; }
+    46%  { transform:translate(calc(var(--dx) * .45),calc(var(--dy) * .45)) rotate(var(--r2)) scaleX(var(--f2));
+           animation-timing-function:linear; }
+    62%  { transform:translate(var(--dx),var(--dy)) rotate(var(--r3)) scaleX(var(--f3));
+           animation-timing-function:cubic-bezier(.72,0,.9,.36); }
+    100% { transform:translate(125vw,var(--y3)) rotate(var(--r4)) scaleX(1); }
+  }
+  @keyframes gust-fade { 0%{opacity:0} 12%,62%{opacity:1} 100%{opacity:0} }
+  /* Deeper than the petals, so the drift still reads once it is covering everything. */
+  .haze { position:absolute; inset:-6px; opacity:0; background:color-mix(in srgb, var(--accent-pale) 74%, var(--accent)); }
+  .go-hanafubuki .haze { animation:haze 1900ms ease-in-out both; }
+  @keyframes haze { 0%{opacity:0} 24%,64%{opacity:1} 100%{opacity:0} }
+  /* The outgoing view must sit ON TOP, or DOM order decides who is visible.
+     The cut is at 44% — squarely inside the fully-opaque window. */
+  .go-hanafubuki .view.leaving { z-index:12; animation:wipeout 1900ms linear both; }
+  @keyframes wipeout { 0%,43%{opacity:1} 44%,100%{opacity:0} }
+
+  .scr { position:absolute; top:0; bottom:0; width:52%; background-color:var(--face);
+    background-image:linear-gradient(90deg,var(--hair) 0 1px,transparent 1px),linear-gradient(var(--hair) 0 1px,transparent 1px);
+    background-size:60px 54px; }
+  .scr.l { left:0; border-right:2px solid var(--ink); transform:translateX(-101%); }
+  .scr.r { right:0; border-left:2px solid var(--ink); transform:translateX(101%); }
+  .go-shoji .scr.l { animation:shoji-l 900ms cubic-bezier(.35,.85,.25,1) both; }
+  .go-shoji .scr.r { animation:shoji-r 900ms cubic-bezier(.35,.85,.25,1) both; }
+  @keyframes shoji-l { 0%{transform:translateX(-101%)} 34%,46%{transform:translateX(0)} 100%{transform:translateX(-101%)} }
+  @keyframes shoji-r { 0%{transform:translateX(101%)} 34%,46%{transform:translateX(0)} 100%{transform:translateX(101%)} }
+
+  .cloth { position:absolute; top:0; bottom:0; width:52%; background:var(--ink); transform:translateY(-102%); }
+  .cloth::after { position:absolute; top:0; right:0; left:0; height:14px; content:""; background:var(--wood); opacity:.5; }
+  .cloth.l { left:0; } .cloth.r { right:0; }
+  .go-noren .cloth.l { animation:noren-l 1000ms cubic-bezier(.3,.9,.3,1) both; }
+  .go-noren .cloth.r { animation:noren-r 1000ms cubic-bezier(.3,.9,.3,1) both; }
+  @keyframes noren-l { 0%{transform:translateY(-102%)} 28%,42%{transform:translateY(0)} 100%{transform:translateX(-134%) rotate(-6deg)} }
+  @keyframes noren-r { 0%{transform:translateY(-102%)} 28%,42%{transform:translateY(0)} 100%{transform:translateX(134%) rotate(6deg)} }
+
+  .blot { position:absolute; top:50%; left:50%; width:190%; aspect-ratio:1; margin:-95% 0 0 -95%;
+    border-radius:44% 56% 51% 49%/52% 47% 53% 48%; background:var(--ink); transform:scale(0); }
+  .go-sumi .blot { animation:blot 1100ms cubic-bezier(.4,0,.3,1) both; }
+  @keyframes blot { 0%{transform:scale(0) rotate(0)} 42%{transform:scale(1) rotate(22deg)} 58%{transform:scale(1) rotate(28deg)} 100%{transform:scale(0) rotate(54deg)} }
+
+  .go-kakejiku .view.entering { z-index:20; animation:unroll 820ms cubic-bezier(.3,.9,.25,1) both; }
+  @keyframes unroll { 0%{clip-path:inset(0 0 100% 0)} 100%{clip-path:inset(0 0 0 0)} }
+  .rod { position:absolute; top:0; right:-8px; left:-8px; height:13px; border-radius:3px; background:var(--ink); opacity:0; }
+  .go-kakejiku .rod { animation:rod 820ms cubic-bezier(.3,.9,.25,1) both; }
+  @keyframes rod { 0%{opacity:1;top:-6px} 100%{opacity:1;top:calc(100% - 7px)} }
+
+  .go-fusuma .view.entering { z-index:20; box-shadow:-4px 0 0 var(--ink); animation:fusuma 660ms cubic-bezier(.2,.9,.25,1) both; }
+  @keyframes fusuma { 0%{transform:translateX(100%)} 80%{transform:translateX(-2.2%)} 100%{transform:translateX(0)} }
+  .go-fusuma .view.leaving { animation:fusuma-out 660ms cubic-bezier(.2,.9,.25,1) both; }
+  @keyframes fusuma-out { 0%{transform:translateX(0)} 100%{transform:translateX(-22%)} }
+
+  @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:1ms !important; transition-duration:1ms !important; } }
+</style>
+
+<script src="sakura.js"></script>
+
+<header class="topbar">
+  <span class="brand"><span class="mon"></span>KIMONO</span>
+  <nav class="nav">
+    <button type="button" aria-current="page">Home</button>
+    <button type="button">Admin</button>
+  </nav>
+  <button class="door" id="door" type="button" aria-label="Go through the door">
+    <span class="leaf l"></span><span class="leaf r"></span>
+    <span class="jamb"></span>
+  </button>
+  <span class="who"><i>A</i>akadmin · owner</span>
+</header>
+
+<div class="stage" id="stage">
+  <section class="view active" id="v-home">
+    <h1>Your apps</h1>
+    <p class="sub">Three running on this house.</p>
+    <div class="tiles">
+      <div class="tile"><b>Kimono Notes</b><small>Shared notes and household knowledge</small><button class="open" type="button" data-to="v-notes">Open</button></div>
+      <div class="tile"><b>Photos</b><small>Everything the household has taken</small><button class="open" type="button" data-to="v-notes">Open</button></div>
+      <div class="tile"><b>Recipes</b><small>What gets cooked here, written down</small><button class="open" type="button" data-to="v-notes">Open</button></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-notes">
+    <button class="back" type="button" data-to="v-home">← All apps</button>
+    <h1>Kimono Notes</h1>
+    <p class="sub">Shared notes and household knowledge</p>
+    <div class="notes">
+      <div class="note"><b>Boiler service</b><span>Due March. Engineer's card is in the kitchen drawer.</span></div>
+      <div class="note"><b>Bin days</b><span>Recycling Tuesday, general waste Friday.</span></div>
+      <div class="note"><b>Wifi</b><span>Guest network password is on the fridge.</span></div>
+    </div>
+  </section>
+
+  <div class="fx" id="fx"></div>
+</div>
+
+<div class="rig">
+  <label>Transition
+    <select id="pick">
+      <option value="hanafubuki">花吹雪 Hanafubuki</option>
+      <option value="noren">暖簾 Noren</option>
+      <option value="kakejiku">掛軸 Kakejiku</option>
+      <option value="sumi">墨 Sumi</option>
+      <option value="fusuma">襖 Fusuma</option>
+    </select>
+  </label>
+  <label>Navigation
+    <select id="mode">
+      <option value="in-app">within the app</option>
+      <option value="cross">to another site</option>
+    </select>
+  </label>
+  <span id="note">Within the app the header is chrome and stays put. Across sites the whole document is replaced, so the cover has to include the header.</span>
+</div>
+
+<script>
+  const CHROME = {
+    kimono:
+      '<span class="brand"><span class="mon"></span>KIMONO</span>' +
+      '<nav class="nav"><button type="button" aria-current="page">Home</button><button type="button">Admin</button></nav>' +
+      '<button class="door" id="door" type="button" aria-label="Go through the door">' +
+        '<span class="leaf l"></span><span class="leaf r"></span><span class="jamb"></span></button>' +
+      '<span class="who"><i>A</i>akadmin · owner</span>',
+    notes:
+      '<span class="brand alt"><span class="mon alt"></span>NOTES</span>' +
+      '<nav class="nav"><button type="button" aria-current="page">All notes</button><button type="button">Search</button></nav>' +
+      '<span class="who"><i>N</i>notes.example.com</span>',
+  };
+
+  const stage = document.getElementById("stage");
+  const fx = document.getElementById("fx");
+  const pick = document.getElementById("pick");
+  const mode = document.getElementById("mode");
+
+  // kind: how the two views are ordered during the change.
+  const TX = {
+    hanafubuki: { dur: 1900, kind: "wipe",  layers: "petals" },
+    shoji:      { dur: 900, kind: "cover", swap: 350, layers: '<div class="scr l"></div><div class="scr r"></div>' },
+    noren:      { dur: 1000, kind: "cover", swap: 330, layers: '<div class="cloth l"></div><div class="cloth r"></div>' },
+    sumi:       { dur: 1100, kind: "cover", swap: 520, layers: '<div class="blot"></div>' },
+    kakejiku:   { dur: 820, kind: "enter", layers: '<div class="rod"></div>' },
+    fusuma:     { dur: 660, kind: "enter", layers: "" },
+  };
+
+  function buildPetals() {
+    let html = '<div class="haze"></div>';
+    for (let i = 0; i < 78; i += 1) {
+      const kind = Sakura.random(0.13);
+      const blossom = kind === "blossom";
+      const tone = Sakura.tone();
+      const sz = blossom ? 26 + Math.random() * 22 : 18 + Math.random() * 26;
+      // whole blossoms are heavier, so they tumble less than loose petals
+      const spin = (Math.random() < 0.5 ? -1 : 1) * (blossom ? 200 + Math.random() * 220 : 420 + Math.random() * 520);
+      html += Sakura.mark(kind, "petal " + tone,
+        "top:" + (Math.random() * 96).toFixed(1) + "%;" +
+        "left:" + (Math.random() * 96).toFixed(1) + "%;" +
+        "--sz:" + sz.toFixed(0) + "px;" +
+        "--y0:" + (Math.random() * 40 - 20).toFixed(0) + "vh;" +
+        "--dx:" + (Math.random() * 64 - 22).toFixed(0) + "px;" +
+        "--dy:" + (Math.random() * 52 - 26).toFixed(0) + "px;" +
+        "--y3:" + (Math.random() * 50 - 25).toFixed(0) + "vh;" +
+        "--r1:" + (spin * 0.30).toFixed(0) + "deg;" +
+        "--r2:" + (spin * 0.42).toFixed(0) + "deg;" +
+        "--r3:" + (spin * 0.53).toFixed(0) + "deg;" +
+        "--r4:" + spin.toFixed(0) + "deg;" +
+        "--f1:" + (0.55 + Math.random() * 0.45).toFixed(2) + ";" +
+        "--f2:" + ((Math.random() < 0.55 ? -1 : 1) * (0.45 + Math.random() * 0.5)).toFixed(2) + ";" +
+        "--f3:" + (0.6 + Math.random() * 0.4).toFixed(2) + ";" +
+        "animation-delay:" + (Math.random() * 150).toFixed(0) + "ms");
+    }
+    return html;
+  }
+
+  let busy = false;
+  let currentId = "v-home";
+
+  function navigate(toId, force) {
+    if (busy || toId === currentId) return;
+    busy = true;
+    const name = force || pick.value;
+    const cfg = TX[name];
+    const from = document.getElementById(currentId);
+    const to = document.getElementById(toId);
+
+    fx.innerHTML = cfg.layers === "petals" ? buildPetals() : cfg.layers;
+    const cross = mode.value === "cross";
+    fx.classList.toggle("window", cross);
+
+    if (cfg.kind === "wipe") {
+      to.classList.add("active");           // destination sits underneath
+      from.classList.add("leaving");        // and the old view is wiped off it
+    } else if (cfg.kind === "enter") {
+      to.classList.add("active", "entering");
+      from.classList.add("leaving");
+    } else {
+      setTimeout(() => { from.classList.remove("active"); to.classList.add("active"); }, cfg.swap);
+    }
+
+    if (cross) {
+      setTimeout(() => renderChrome(toId === "v-notes" ? "notes" : "kimono"), Math.round(cfg.dur * 0.44));
+    }
+
+    stage.classList.add("go-" + name);
+    setTimeout(() => {
+      stage.classList.remove("go-" + name);
+      from.classList.remove("active", "leaving");
+      to.classList.remove("entering");
+      to.classList.add("active");
+      fx.innerHTML = "";
+      currentId = toId;
+      busy = false;
+    }, cfg.dur + 60);
+  }
+
+  for (const b of document.querySelectorAll("[data-to]")) {
+    b.addEventListener("click", () => navigate(b.dataset.to));
+  }
+
+  // The door goes through to the other room, and shuts and opens as it does.
+  function renderChrome(which) {
+    document.querySelector(".topbar").innerHTML = CHROME[which];
+    const door = document.getElementById("door");
+    if (!door) return;
+    door.addEventListener("click", () => {
+      if (busy) return;
+      door.classList.add("working");
+      setTimeout(() => door.classList.remove("working"), 960);
+      navigate(currentId === "v-home" ? "v-notes" : "v-home", "shoji");
+    });
+  }
+  renderChrome("kimono");
+</script>

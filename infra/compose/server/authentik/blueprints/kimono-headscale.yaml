@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
 version: 1
 metadata:
-  name: Kimono Headscale
+  name: Kimono Platform
   labels:
-    blueprints.goauthentik.io/description: Kimono mesh OIDC provider and application
+    blueprints.goauthentik.io/description: Kimono identity brand and application OIDC providers
     blueprints.goauthentik.io/instantiate: "true"
 
 entries:
@@ -13,62 +13,72 @@ entries:
         name: Default - Authentication flow
       required: true
 
-  - id: kimono-authentication-flow
-    model: authentik_flows.flow
+  # The sign-in page greets with the flow's own title, not the brand title, so
+  # the stock "Welcome to authentik!" survives branding unless it is set here.
+  - model: authentik_flows.flow
     state: present
     identifiers:
-      slug: kimono-authentication-flow
+      slug: default-authentication-flow
     attrs:
-      name: Kimono authentication
-      title: おかえりなさい · Welcome home
+      name: Default - Authentication flow
       designation: authentication
-      authentication: none
-      layout: content_left
-      background: /static/kimono/sakura-branch-v2.png
+      title: Welcome to Kimono
 
-  - model: authentik_flows.flowstagebinding
+  # The Portal lists accounts so an administrator can grant Kimono VPN to a real
+  # person. It gets a service account that may read the directory and nothing
+  # else — the Portal should never hold more privilege than the job needs.
+  - id: kimono-portal-service
+    model: authentik_core.user
+    state: present
     identifiers:
-      target: !KeyOf kimono-authentication-flow
-      stage: !Find [authentik_stages_identification.identificationstage, [name, default-authentication-identification]]
-      order: 10
-
-  - id: kimono-authentication-password-binding
-    model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf kimono-authentication-flow
-      stage: !Find [authentik_stages_password.passwordstage, [name, default-authentication-password]]
-      order: 20
+      username: kimono-portal
     attrs:
-      re_evaluate_policies: true
+      name: Kimono Portal
+      type: service_account
+      path: goauthentik.io/service-accounts
 
-  - id: kimono-authentication-mfa-binding
-    model: authentik_flows.flowstagebinding
+  - id: kimono-portal-role
+    model: authentik_rbac.role
+    state: present
     identifiers:
-      target: !KeyOf kimono-authentication-flow
-      stage: !Find [authentik_stages_authenticator_validate.authenticatorvalidatestage, [name, default-authentication-mfa-validation]]
-      order: 30
-
-  - model: authentik_flows.flowstagebinding
-    identifiers:
-      target: !KeyOf kimono-authentication-flow
-      stage: !Find [authentik_stages_user_login.userloginstage, [name, default-authentication-login]]
-      order: 100
-
-  - model: authentik_policies.policybinding
-    identifiers:
-      target: !KeyOf kimono-authentication-password-binding
-      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-authentication-flow-password-stage]]
-      order: 10
+      name: Kimono Portal directory
     attrs:
-      failure_result: true
+      permissions:
+        - authentik_core.view_user
+        - authentik_core.change_user
+        - authentik_core.view_group
+        - authentik_core.change_group
 
-  - model: authentik_policies.policybinding
+  - model: authentik_core.group
+    state: present
     identifiers:
-      target: !KeyOf kimono-authentication-mfa-binding
-      policy: !Find [authentik_policies_expression.expressionpolicy, [name, default-authentication-flow-authenticator-validate-stage]]
-      order: 10
+      name: Kimono Portal
     attrs:
-      failure_result: true
+      users:
+        - !KeyOf kimono-portal-service
+      roles:
+        - !KeyOf kimono-portal-role
+
+  # Kimono VPN access is membership of this group, so the group is the record.
+  # Keeping it in the identity provider means an account and its entitlements
+  # cannot drift apart, and revoking the account revokes the mesh with it.
+  - model: authentik_core.group
+    state: present
+    identifiers:
+      name: kimono-vpn
+    attrs:
+      is_superuser: false
+
+  - model: authentik_core.token
+    state: present
+    identifiers:
+      identifier: kimono-portal-directory
+    attrs:
+      user: !KeyOf kimono-portal-service
+      intent: api
+      expiring: false
+      description: Lets the Kimono Portal list accounts
+      key: !Env KIMONO_PORTAL_API_TOKEN
 
   - model: authentik_brands.brand
     state: present
@@ -77,11 +87,11 @@ entries:
     attrs:
       default: false
       branding_title: Kimono
-      branding_logo: /static/kimono/kimono-sakura-mark.svg
-      branding_favicon: /static/kimono/kimono-sakura-mark.svg
-      branding_default_flow_background: /static/kimono/sakura-branch-v2.png
+      branding_logo: /static/kimono/kimono-logo.png
+      branding_favicon: /static/kimono/favicon-48.png
+      branding_default_flow_background: /static/kimono/kimono-login-background.svg
       branding_custom_css: !File /blueprints/kimono/kimono.css
-      flow_authentication: !KeyOf kimono-authentication-flow
+      flow_authentication: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
       flow_invalidation: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
       flow_recovery: !Find [authentik_flows.flow, [slug, default-recovery-flow]]
       flow_unenrollment: !Find [authentik_flows.flow, [slug, default-unenrollment-flow]]
@@ -127,6 +137,18 @@ entries:
       provider: !KeyOf kimono-headscale-provider
       meta_description: Private access to your Kimono devices.
       open_in_new_tab: true
+
+  # Kimono Notes moved to a Portal-generated blueprint. Remove the objects this
+  # blueprint used to own, application first so the provider is unreferenced.
+  - model: authentik_core.application
+    state: absent
+    identifiers:
+      slug: kimono-notes
+
+  - model: authentik_providers_oauth2.oauth2provider
+    state: absent
+    identifiers:
+      client_id: kimono-notes
 
   - id: kimono-portal-provider
     model: authentik_providers_oauth2.oauth2provider

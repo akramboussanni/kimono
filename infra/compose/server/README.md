@@ -4,37 +4,40 @@ This Compose project runs the private-network control plane for Kimono:
 
 - Authentik provides Kimono SSO.
 - Kimono Portal provides the household application home screen.
+- Kimono Notes provides shared notes through Outline with Kimono SSO.
 - Headscale coordinates the WireGuard mesh and enrolls devices through OIDC.
 - Headscale's embedded DERP/STUN service relays encrypted traffic when peers
   cannot connect directly.
-- Caddy terminates public TLS for the identity and mesh endpoints.
+- Caddy terminates public TLS for identity, mesh, Portal, and Notes.
 
-It does **not** manage application exposure on connected VMs. Each VM owns its
-own Cloudflare login and Cloudflare Tunnel through the Kimono CLI.
+Application exposure belongs to the Kimono server runtime, not connected client
+nodes. The Portal manages provider connections and route intent; client-node
+exposure commands remain optional convenience tools.
 
 ## Requirements
 
 - A Linux VM with Docker Engine and Docker Compose v2
 - Public TCP ports 80 and 443
 - Public UDP port 3478
-- Three DNS records pointing directly to the VM, for example:
+- Four DNS records pointing directly to the VM, for example:
 
   - `accounts.example.com`
   - `mesh.example.com`
   - `kimono.example.com` (or an apex/hostname chosen during setup)
+  - `notes.example.com`
 
 The mesh record must be DNS-only. Do not place Headscale behind a Cloudflare
 Tunnel or enable Cloudflare's HTTP proxy for this record; the Tailscale control
 protocol uses an HTTP POST upgrade that Cloudflare does not proxy correctly.
 
-`kimono server install` verifies both A records against the VM's detected public
+`kimono server install` verifies all four A records against the VM's detected public
 IPv4 before starting the appliance. It leaves generated configuration in place
 when DNS is not ready; correct the records and run `sudo kimono server start`.
 Use `sudo kimono server doctor` to repeat the check later.
 
 For dynamic public IPs, run `sudo kimono server cloudflare-ddns setup` and use a
-zone-scoped Cloudflare **Edit zone DNS** API token. Kimono manages the identity
-and mesh A records as DNS-only and installs a five-minute systemd timer. The
+zone-scoped Cloudflare **Edit zone DNS** API token. Kimono manages all four A
+records as DNS-only and installs a five-minute systemd timer. The
 token is stored root-only outside the Compose environment file.
 
 ## Configure
@@ -45,7 +48,7 @@ Create the private environment file:
 cp infra/compose/server/.env.example infra/compose/server/.env
 openssl rand -base64 36
 openssl rand -base64 60
-openssl rand -hex 32
+openssl rand -hex 32 # repeat for each remaining OIDC, database, and app secret
 ```
 
 Use those values for `PG_PASS`, `AUTHENTIK_SECRET_KEY`, and
@@ -81,11 +84,11 @@ Open the following URL and create the initial Kimono owner:
 https://<AUTHENTIK_DOMAIN>/if/flow/initial-setup/
 ```
 
-Authentik discovers the mounted `Kimono Headscale` blueprint and creates its
-OIDC provider automatically. The same blueprint creates an exact-domain Kimono
+Authentik discovers the mounted `Kimono Platform` blueprint and creates its
+OIDC providers automatically. The same blueprint creates an exact-domain Kimono
 Brand and a dedicated authentication flow that reuses Authentik's maintained
 identification, password, MFA, and session-login stages. The login experience
-uses the Portal's sakura mark, branch artwork, paper palette, and responsive
+uses the Kimono SVG wordmark, botanical artwork, paper palette, and responsive
 left-content composition without replacing Authentik's security components.
 
 The Headscale container waits for Authentik's health check and then validates
@@ -97,9 +100,52 @@ Brand styling lives in:
 infra/compose/server/authentik/blueprints/kimono.css
 ```
 
-The logo and branch are served directly by Caddy from the existing Portal
-assets, so there is only one checked-in copy of each artwork file. Authentik
-reapplies the blueprint automatically when the YAML or CSS changes.
+The wordmark and botanical background are reusable SVG assets served directly
+by Caddy from the Portal brand directory. Authentik reapplies the blueprint
+automatically when the YAML or CSS changes.
+
+## Kimono Notes
+
+Kimono Notes is Outline, deployed as a connected Kimono application from the
+Portal rather than from this Compose file. Enabling it in `/admin` renders a
+deployment plan; the `reconciler` sidecar then starts its web service,
+PostgreSQL database, Redis instance, and upload volume in the `kimono-apps`
+project, installs the generated Authentik blueprint that creates its OIDC
+provider, and creates the DNS record for its hostname. Its hostname and
+launcher palette are Admin settings; changing them does not require rebuilding
+any image.
+
+After signing in as an owner or Kimono administrator, open `/admin`. The Admin
+surface stores the base domain, per-app domain, launcher visibility, and flower
+palettes under `/var/lib/kimono-portal`, which is backed up as a directory. Short app names are resolved
+under the configured base domain; complete hostnames remain unchanged.
+
+On first launch, choose **Continue with Kimono**. The first authenticated user
+creates the Outline workspace and becomes its administrator. Outline remains
+responsible for note permissions and workspace administration.
+
+## Cloudflare Tunnel connection
+
+Sign in as an owner or Kimono administrator, then open **Admin → Infrastructure
+→ Tunnels → Add tunnel**. Give the connection a name and Cloudflare domain.
+Kimono runs `cloudflared tunnel login`, opens Cloudflare's authorization page,
+waits for `cert.pem`, and creates the named tunnel automatically. The production
+Portal image includes `cloudflared`; local development uses the official
+Cloudflare Docker image when no local binary is installed.
+
+Every login uses a separate private directory in the backed-up Portal
+configuration volume. Its account-wide certificate and tunnel-specific
+credentials therefore cannot overwrite another Kimono tunnel. Repeat the flow
+to create a tunnel in another Cloudflare account.
+
+The domain selected during authorization becomes the domain dropdown for that
+tunnel. In an app's **Setup** page, select a tunnel and edit only the subdomain.
+Setup is the only place that owns the app
+address; Infrastructure shows generated routes without a second hostname
+editor. Existing connector tokens and
+locally managed tunnel credentials remain available as advanced fallbacks. The
+server-runtime screen previews the generated Compose project and route actions
+before deployment.
 
 Inspect service state and logs with:
 
@@ -178,7 +224,9 @@ Back up these named volumes:
 - `kimono-server_authentik_data`
 - `kimono-server_headscale_data`
 - `kimono-server_caddy_data`
+- `/var/lib/kimono-portal` (Portal settings, secrets, and tunnel credentials)
+- every `kimono-apps_*` volume belonging to a deployed application
 
 Pin updates by changing `AUTHENTIK_TAG`, `HEADSCALE_TAG`, or `CADDY_TAG` in
-`.env`. Read upstream migration notes before updating Headscale across releases,
+`.env`; application versions come from their definitions. Read upstream migration notes before updating Headscale across releases,
 and test service enrollment and peer isolation after every update.

@@ -1,0 +1,264 @@
+package reconcile
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func validPlan() Plan {
+	var plan Plan
+	plan.APIVersion = PlanAPIVersion
+	plan.Runtime.ID = "server"
+	plan.Runtime.Engine = "docker-compose"
+	plan.Compose.Name = ProjectName
+	plan.Compose.Networks = map[string]Network{"kimono-edge": {}, "outline-private": {Internal: true}}
+	plan.Compose.Volumes = map[string]struct{}{"outline-database": {}}
+	plan.Compose.Services = map[string]Service{
+		"outline-web": {
+			Image: "docker.getoutline.com/outlinewiki/outline:1.7.1", Restart: "unless-stopped",
+			Environment: map[string]string{"SECRET_KEY": "${KIMONO_SECRET_OUTLINE_SECRET_KEY}"},
+			DependsOn:   []string{"outline-database"}, Networks: []string{"outline-private", "kimono-edge"},
+			SecurityOpt: []string{"no-new-privileges:true"},
+		},
+		"outline-database": {
+			Image: "postgres:16-alpine", Restart: "unless-stopped",
+			Volumes: []string{"outline-database:/var/lib/postgresql/data"}, Networks: []string{"outline-private"},
+			SecurityOpt: []string{"no-new-privileges:true"},
+		},
+	}
+	plan.Secrets = []string{"KIMONO_SECRET_OUTLINE_SECRET_KEY"}
+	return plan
+}
+
+func TestValidateAcceptsRenderedPlan(t *testing.T) {
+	if err := validPlan().Validate(); err != nil {
+		t.Fatalf("expected the plan to validate: %v", err)
+	}
+}
+
+func TestValidateRejectsUnsafePlans(t *testing.T) {
+	cases := map[string]func(*Plan){
+		"foreign project": func(p *Plan) { p.Compose.Name = "not-kimono" },
+		"unknown network": func(p *Plan) {
+			p.Compose.Services["outline-web"] = withNetworks(p.Compose.Services["outline-web"], "host")
+		},
+		"undeclared volume": func(p *Plan) {
+			p.Compose.Services["outline-database"] = withVolumes(p.Compose.Services["outline-database"], "elsewhere:/data")
+		},
+		"escaping bind mount": func(p *Plan) {
+			p.Compose.Services["outline-web"] = withVolumes(p.Compose.Services["outline-web"], "../../etc:/etc")
+		},
+		"socket-shaped image": func(p *Plan) {
+			p.Compose.Services["outline-web"] = withImage(p.Compose.Services["outline-web"], "alpine; rm -rf /")
+		},
+		"escaping file": func(p *Plan) { p.Files = map[string]string{"../../root/.ssh/authorized_keys": "key"} },
+		"absolute file": func(p *Plan) { p.Files = map[string]string{"/etc/passwd": "root"} },
+		"unknown provider": func(p *Plan) {
+			p.ProviderActions = []ProviderAction{{Provider: "someone-else", Hostname: "notes.example.com"}}
+		},
+		"relative origincert": func(p *Plan) {
+			p.ProviderActions = []ProviderAction{{Provider: "cloudflare", Mode: "credentials", Hostname: "notes.example.com", TunnelUUID: "70ce07ef-c004-458f-8def-220f6776d2fe", OriginCertificate: "cert.pem"}}
+		},
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			plan := validPlan()
+			mutate(&plan)
+			if err := plan.Validate(); err == nil {
+				t.Fatal("expected validation to reject the plan")
+			}
+		})
+	}
+}
+
+func withNetworks(service Service, networks ...string) Service {
+	service.Networks = networks
+	return service
+}
+func withVolumes(service Service, volumes ...string) Service {
+	service.Volumes = volumes
+	return service
+}
+func withImage(service Service, image string) Service { service.Image = image; return service }
+
+func TestExpandSecretsReportsMissingValues(t *testing.T) {
+	if _, err := ExpandSecrets("secret: ${KIMONO_SECRET_OUTLINE_SECRET_KEY}", map[string]string{}); err == nil {
+		t.Fatal("expected an error naming the missing secret")
+	}
+	expanded, err := ExpandSecrets("secret: ${KIMONO_SECRET_OUTLINE_SECRET_KEY}", map[string]string{"KIMONO_SECRET_OUTLINE_SECRET_KEY": "abc"})
+	if err != nil || expanded != "secret: abc" {
+		t.Fatalf("unexpected expansion %q (%v)", expanded, err)
+	}
+}
+
+func TestRenderComposeIsDeterministicAndQuoted(t *testing.T) {
+	plan := validPlan()
+	first := RenderCompose(plan)
+	if first != RenderCompose(plan) {
+		t.Fatal("expected identical output for an unchanged plan")
+	}
+	if !strings.Contains(first, `SECRET_KEY: "${KIMONO_SECRET_OUTLINE_SECRET_KEY}"`) {
+		t.Fatalf("secret reference was not preserved:\n%s", first)
+	}
+	if !strings.Contains(first, "  outline-private:\n    internal: true") {
+		t.Fatalf("internal network was not rendered:\n%s", first)
+	}
+}
+
+func TestComposeValueEscapesLiteralDollars(t *testing.T) {
+	if got := composeValue("p$ssword"); got != "p$$ssword" {
+		t.Fatalf("expected literal dollars to be escaped, got %q", got)
+	}
+	if got := composeValue("${KIMONO_SECRET_A}"); got != "${KIMONO_SECRET_A}" {
+		t.Fatalf("expected secret references to survive, got %q", got)
+	}
+}
+
+func TestRenderRoutesBlueprintsAndPrunesRemovedApps(t *testing.T) {
+	root := t.TempDir()
+	layout := Layout{ProjectDir: filepath.Join(root, "apps"), BlueprintDir: filepath.Join(root, "blueprints")}
+	if err := os.MkdirAll(layout.BlueprintDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(layout.BlueprintDir, "kimono-removed.yaml")
+	if err := os.WriteFile(stale, []byte("# Generated by Kimono\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	keep := filepath.Join(layout.BlueprintDir, "kimono-headscale.yaml")
+	if err := os.WriteFile(keep, []byte("version: 1\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := validPlan()
+	plan.Files = map[string]string{
+		"authentik/kimono-outline.yaml":  "# Generated by Kimono\nclient_secret: ${KIMONO_SECRET_OUTLINE_SECRET_KEY}\n",
+		"generated/cloudflare-tnnel.yml": "tunnel: abc\n",
+	}
+	result, err := Render(plan, map[string]string{"KIMONO_SECRET_OUTLINE_SECRET_KEY": "value"}, layout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.ComposeChanged || !result.BlueprintsChanged {
+		t.Fatalf("expected both compose and blueprints to change: %+v", result)
+	}
+	blueprint, err := os.ReadFile(filepath.Join(layout.BlueprintDir, "kimono-outline.yaml"))
+	if err != nil || !strings.Contains(string(blueprint), "client_secret: value") {
+		t.Fatalf("blueprint was not written with an expanded secret: %s (%v)", blueprint, err)
+	}
+	if _, err := os.Stat(filepath.Join(layout.ProjectDir, "generated/cloudflare-tnnel.yml")); err != nil {
+		t.Fatalf("provider file was not written: %v", err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatal("expected the generated blueprint of a removed app to be pruned")
+	}
+	if _, err := os.Stat(keep); err != nil {
+		t.Fatal("expected checked-in blueprints to survive pruning")
+	}
+	environment, err := os.ReadFile(layout.EnvironmentPath())
+	if err != nil || strings.TrimSpace(string(environment)) != "KIMONO_SECRET_OUTLINE_SECRET_KEY=value" {
+		t.Fatalf("unexpected environment file %q (%v)", environment, err)
+	}
+
+	again, err := Render(plan, map[string]string{"KIMONO_SECRET_OUTLINE_SECRET_KEY": "value"}, layout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.ComposeChanged || again.BlueprintsChanged {
+		t.Fatalf("expected a repeat render to be a no-op: %+v", again)
+	}
+}
+
+func TestRenderKeepsBlueprintsPrivateAndConnectorConfigReadable(t *testing.T) {
+	root := t.TempDir()
+	layout := Layout{ProjectDir: filepath.Join(root, "apps"), BlueprintDir: filepath.Join(root, "blueprints")}
+	plan := validPlan()
+	plan.Files = map[string]string{
+		"authentik/kimono-outline.yaml":  "# Generated by Kimono\nsecret: ${KIMONO_SECRET_OUTLINE_SECRET_KEY}\n",
+		"generated/cloudflare-tnnel.yml": "tunnel: abc\n",
+	}
+	if _, err := Render(plan, map[string]string{"KIMONO_SECRET_OUTLINE_SECRET_KEY": "value"}, layout); err != nil {
+		t.Fatal(err)
+	}
+	// The connector image runs as a non-root user and must read its config.
+	config, err := os.Stat(filepath.Join(layout.ProjectDir, "generated/cloudflare-tnnel.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := config.Mode().Perm(); got != 0644 {
+		t.Fatalf("connector config permissions = %o, expected 644", got)
+	}
+	blueprint, err := os.Stat(filepath.Join(layout.BlueprintDir, "kimono-outline.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := blueprint.Mode().Perm(); got != 0600 {
+		t.Fatalf("blueprint permissions = %o, expected 600", got)
+	}
+	environment, err := os.Stat(layout.EnvironmentPath())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := environment.Mode().Perm(); got != 0600 {
+		t.Fatalf("environment permissions = %o, expected 600", got)
+	}
+}
+
+func TestRenderRepairsPermissionsOnUnchangedFiles(t *testing.T) {
+	root := t.TempDir()
+	layout := Layout{ProjectDir: filepath.Join(root, "apps"), BlueprintDir: filepath.Join(root, "blueprints")}
+	plan := validPlan()
+	plan.Files = map[string]string{"generated/cloudflare-tnnel.yml": "tunnel: abc\n"}
+	secrets := map[string]string{"KIMONO_SECRET_OUTLINE_SECRET_KEY": "value"}
+	if _, err := Render(plan, secrets, layout); err != nil {
+		t.Fatal(err)
+	}
+	// An earlier release wrote this file unreadable to the connector image.
+	path := filepath.Join(layout.ProjectDir, "generated/cloudflare-tnnel.yml")
+	if err := os.Chmod(path, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Render(plan, secrets, layout); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0644 {
+		t.Fatalf("permissions = %o, expected the reconcile to repair them to 644", got)
+	}
+}
+
+// The reconciler applies blueprints to Authentik by name, so Render has to
+// report every generated blueprint even on a run that changed nothing else.
+func TestRenderReportsGeneratedBlueprintNames(t *testing.T) {
+	root := t.TempDir()
+	layout := Layout{ProjectDir: filepath.Join(root, "apps"), BlueprintDir: filepath.Join(root, "blueprints")}
+	if err := os.MkdirAll(layout.BlueprintDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := validPlan()
+	plan.Files = map[string]string{
+		"authentik/kimono-outline.yaml":   "# Generated by Kimono\n",
+		"generated/cloudflare-tunnel.yml": "tunnel: abc\n",
+	}
+	secrets := map[string]string{"KIMONO_SECRET_OUTLINE_SECRET_KEY": "value"}
+	result, err := Render(plan, secrets, layout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Blueprints) != 1 || result.Blueprints[0] != "kimono-outline.yaml" {
+		t.Fatalf("expected the blueprint to be reported by name, got %v", result.Blueprints)
+	}
+
+	repeat, err := Render(plan, secrets, layout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repeat.Blueprints) != 1 {
+		t.Fatalf("expected the name on an unchanged run too, got %v", repeat.Blueprints)
+	}
+}

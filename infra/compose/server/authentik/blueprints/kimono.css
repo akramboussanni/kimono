@@ -1,224 +1,219 @@
-/*
- * Kimono identity
- *
- * Keep the security flow native to Authentik; make its public surface feel like
- * the quiet, tactile front door of the Kimono portal. PatternFly variables do
- * the durable work and the selectors below provide progressive enhancement for
- * Authentik's current flow layouts.
- */
+@import url("/static/kimono/theme.css");
 
+/* Kimono's Authentik skin deliberately keeps Authentik's maintained flow and
+   security controls. This file owns only composition and visual hierarchy. */
 :root,
 html[data-theme="light"] {
   --kimono-sumi: #2b1d22;
   --kimono-sumi-soft: #6c5359;
   --kimono-muted: #8b7379;
-  --kimono-paper: #fff8f5;
-  --kimono-paper-warm: #f9e5e8;
-  --kimono-paper-light: #fffdfb;
-  --kimono-line: #e7cfd2;
+  --kimono-paper: #faf7f1;
+  --kimono-paper-light: #fffdf8;
+  --kimono-paper-warm: #f1eadc;
+  --kimono-line: #dfc8cc;
   --kimono-sakura: #d77b8c;
-  --kimono-sakura-pale: #f2cbd2;
   --kimono-plum: #5f3441;
-  --kimono-moss: #7f8b72;
-  --kimono-vermillion: #a84d63;
-  --kimono-shadow: rgba(55, 45, 37, .1);
+  --kimono-red: #a84d63;
+  --ak-flow-background: url("/static/kimono/kimono-login-background.svg") !important;
 
-  --ak-accent: var(--kimono-vermillion);
+  --ak-accent: var(--kimono-red);
   --ak-global--background-color: var(--kimono-paper);
   --ak-c-login--BackgroundColor: var(--kimono-paper);
   --ak-c-login--BackgroundColorOverlay: transparent;
-  --ak-c-login--MaxWidth: 40rem;
-  --ak-c-login__main--BackgroundColor: color-mix(in srgb, var(--kimono-paper-light) 94%, transparent);
+  --ak-c-login--MaxWidth: 35rem;
+  --ak-c-login__main--BackgroundColor: var(--kimono-paper-light);
   --ak-c-login__main--Color: var(--kimono-sumi);
   --ak-c-login__main--BoxShadow: none;
   --ak-c-login__content-BoxShadow: none;
-  --ak-c-login__footer--Color: var(--kimono-muted);
 
-  --pf-global--primary-color--100: var(--kimono-plum);
-  --pf-global--primary-color--200: #46232e;
+  --pf-global--primary-color--100: var(--kimono-red);
+  --pf-global--primary-color--200: #86384d;
   --pf-global--BackgroundColor--100: var(--kimono-paper-light);
-  --pf-global--BackgroundColor--light-100: var(--kimono-paper-light);
   --pf-global--Color--100: var(--kimono-sumi);
-  --pf-global--Color--dark-100: var(--kimono-sumi);
   --pf-global--Color--200: var(--kimono-sumi-soft);
   --pf-global--BorderColor--100: var(--kimono-line);
-  --pf-global--FontFamily--sans-serif: Arial, Helvetica, sans-serif;
-  --pf-global--FontFamily--heading--sans-serif: Georgia, "Times New Roman", serif;
-  --pf-global--BorderRadius--sm: 3px;
-  --pf-global--BorderRadius--lg: 6px;
+  --pf-global--FontFamily--sans-serif: "Helvetica Neue", Arial, sans-serif;
+  --pf-global--FontFamily--heading--sans-serif: "Helvetica Neue", Arial, sans-serif;
+  --pf-global--BorderRadius--sm: 2px;
+  --pf-global--BorderRadius--lg: 2px;
 
-  --pf-v5-global--primary-color--100: var(--kimono-plum);
-  --pf-v5-global--primary-color--200: #46232e;
+  --pf-v5-global--primary-color--100: var(--kimono-red);
+  --pf-v5-global--primary-color--200: #86384d;
   --pf-v5-global--BackgroundColor--100: var(--kimono-paper-light);
   --pf-v5-global--Color--100: var(--kimono-sumi);
   --pf-v5-global--Color--200: var(--kimono-sumi-soft);
   --pf-v5-global--BorderColor--100: var(--kimono-line);
-  --pf-v5-global--FontFamily--sans-serif: Arial, Helvetica, sans-serif;
-  --pf-v5-global--FontFamily--heading--sans-serif: Georgia, "Times New Roman", serif;
   color-scheme: light;
 }
 
 html,
 body {
   min-height: 100%;
+  margin: 0;
   color: var(--kimono-sumi);
   background: var(--kimono-paper);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Helvetica Neue", Arial, sans-serif;
 }
 
-body::after {
+/* Remove the accumulated PatternFly elevation. Focus uses outlines and borders. */
+.pf-c-login *,
+.pf-c-login *::before,
+.pf-c-login *::after,
+.pf-v5-c-login *,
+.pf-v5-c-login *::before,
+.pf-v5-c-login *::after,
+.pf-v6-c-login *,
+.pf-v6-c-login *::before,
+.pf-v6-c-login *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.pf-c-background-image,
+.pf-v5-c-background-image,
+.pf-v6-c-background-image {
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: #f4e6e4 !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+  background-size: auto 100vh !important;
+}
+
+/* Keep the art on the right and protect the form from visual interference. */
+.pf-c-background-image::before,
+.pf-v5-c-background-image::before,
+.pf-v6-c-background-image::before {
   position: fixed;
   z-index: 0;
   inset: 0;
   content: "";
   pointer-events: none;
-  opacity: .3;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");
+  background: linear-gradient(90deg, var(--kimono-paper-light) 0 560px, rgba(255, 253, 251, .76) 660px, transparent 900px) !important;
 }
 
-/* The flow background is the same botanical artwork used by the portal. */
-.pf-c-background-image,
-.pf-v5-c-background-image,
-.pf-v6-c-background-image {
-  position: relative;
-  isolation: isolate;
-  background-color: #f5dfe3 !important;
-  background-position: right top !important;
-  background-repeat: no-repeat !important;
-  background-size: min(69vw, 1120px) auto !important;
-}
-
-.pf-c-background-image::before,
-.pf-v5-c-background-image::before,
-.pf-v6-c-background-image::before {
-  z-index: 0;
-  background:
-    linear-gradient(90deg, var(--kimono-paper) 0%, rgba(255, 248, 245, .98) 36%, rgba(255, 248, 245, .3) 68%, rgba(255, 248, 245, .06) 100%),
-    radial-gradient(circle at 82% 44%, rgba(215, 123, 140, .3) 0 12%, transparent 12.2%) !important;
-}
-
-/* A restrained editorial signature on the artwork side. */
 .pf-c-background-image::after,
 .pf-v5-c-background-image::after,
 .pf-v6-c-background-image::after {
   position: fixed;
   z-index: 1;
-  top: clamp(32px, 5vw, 72px);
-  right: clamp(26px, 5vw, 74px);
-  content: "着物  ·  KIMONO  ·  家";
-  color: var(--kimono-sumi-soft);
-  font: 11px/1.5 Georgia, "Times New Roman", serif;
-  letter-spacing: .32em;
-  pointer-events: none;
+  top: 42px;
+  right: 38px;
+  content: "KIMONO · HOME";
+  color: var(--kimono-red);
+  font: 9px/1.6 Georgia, serif;
+  letter-spacing: .28em;
   writing-mode: vertical-rl;
   opacity: .7;
+  pointer-events: none;
 }
 
-/* Give the native executor the same calm left-panel rhythm as /login. */
 .pf-c-login,
 .pf-v5-c-login,
-.pf-v6-c-login {
+.pf-v6-c-login,
+.pf-c-login__container,
+.pf-v5-c-login__container,
+.pf-v6-c-login__container {
   position: relative;
   z-index: 2;
+  min-height: 100vh;
 }
 
 .pf-c-login__container,
 .pf-v5-c-login__container,
 .pf-v6-c-login__container {
-  min-height: 100vh;
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .pf-c-login__main,
 .pf-v5-c-login__main,
 .pf-v6-c-login__main {
-  position: relative;
-  width: min(100%, 640px);
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: min(560px, 100vw) !important;
+  min-width: 0 !important;
   min-height: 100vh;
-  margin: 0;
-  border: 0;
-  border-right: 1px solid var(--kimono-line);
-  border-radius: 0;
-  background: color-mix(in srgb, var(--kimono-paper-light) 90%, transparent);
-  box-shadow: 22px 0 70px rgba(55, 45, 37, .06);
-  backdrop-filter: blur(16px);
+  margin: 0 !important;
+  padding: clamp(40px, 6vh, 76px) clamp(34px, 5vw, 76px) !important;
+  overflow-y: auto;
+  border: 0 !important;
+  border-right: 1px solid var(--kimono-line) !important;
+  border-radius: 0 !important;
+  color: var(--kimono-sumi);
+  background: var(--kimono-paper-light) !important;
+  backdrop-filter: none !important;
 }
 
-.pf-c-login__main::after,
-.pf-v5-c-login__main::after,
-.pf-v6-c-login__main::after {
+.pf-c-login__main::before,
+.pf-v5-c-login__main::before,
+.pf-v6-c-login__main::before {
   position: absolute;
-  right: clamp(24px, 4vw, 52px);
-  bottom: clamp(28px, 5vw, 60px);
-  width: 42px;
-  height: 50px;
-  display: grid;
-  place-items: center;
-  border: 2px solid color-mix(in srgb, var(--kimono-vermillion) 78%, transparent);
-  content: "家\A庭";
-  color: var(--kimono-vermillion);
-  font: 15px/1.25 Georgia, "Times New Roman", serif;
-  text-align: center;
-  white-space: pre;
-  opacity: .7;
-  transform: rotate(-2deg);
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+  content: "";
+  background: var(--kimono-red);
 }
 
 .pf-c-login__main-header,
 .pf-v5-c-login__main-header,
 .pf-v6-c-login__main-header {
-  padding-bottom: clamp(22px, 4vh, 38px);
-  border-bottom: 1px solid color-mix(in srgb, var(--kimono-line) 75%, transparent);
+  padding-bottom: 24px !important;
+  border-bottom: 1px solid var(--kimono-line) !important;
 }
 
 .pf-c-login__main-body,
 .pf-v5-c-login__main-body,
 .pf-v6-c-login__main-body {
-  padding-top: clamp(30px, 5vh, 52px);
-}
-
-.pf-c-login__main-footer,
-.pf-v5-c-login__main-footer,
-.pf-v6-c-login__main-footer {
-  color: var(--kimono-muted);
-  font-size: 10px;
-  letter-spacing: .04em;
+  padding-top: 28px !important;
 }
 
 .pf-c-brand,
 .pf-v5-c-brand,
 .pf-v6-c-brand {
-  width: 72px;
-  max-width: 72px;
-  height: 72px;
+  width: 220px !important;
+  max-width: 72vw;
+  height: 64px !important;
   object-fit: contain;
-  filter: drop-shadow(0 7px 14px rgba(106, 64, 63, .1));
+  object-position: left center;
+  filter: none !important;
 }
 
 .pf-c-title,
 .pf-v5-c-title,
 .pf-v6-c-title,
-.pf-c-login__main-header,
-.pf-v5-c-login__main-header,
-.pf-v6-c-login__main-header,
 h1,
 h2 {
   color: var(--kimono-sumi);
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 400;
-  letter-spacing: -.035em;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-weight: 680;
+  letter-spacing: -.04em;
 }
 
 .pf-c-title.pf-m-3xl,
 .pf-v5-c-title.pf-m-3xl,
 .pf-v6-c-title.pf-m-3xl {
-  font-size: clamp(35px, 4vw, 52px);
-  line-height: 1.02;
+  color: var(--kimono-red) !important;
+  font-size: clamp(34px, 4vw, 48px) !important;
+  line-height: 1 !important;
+}
+
+.pf-c-login__main-body > p:first-child,
+.pf-v5-c-login__main-body > p:first-child,
+.pf-v6-c-login__main-body > p:first-child {
+  color: var(--kimono-red);
+  font-weight: 650;
 }
 
 .pf-c-form,
 .pf-v5-c-form,
 .pf-v6-c-form {
-  gap: 22px;
+  gap: 20px;
 }
 
 .pf-c-form__label,
@@ -227,9 +222,16 @@ h2 {
 label {
   color: var(--kimono-sumi-soft);
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .11em;
+  font-weight: 720;
+  letter-spacing: .07em;
   text-transform: uppercase;
+}
+
+.pf-c-form__label-required,
+.pf-v5-c-form__label-required,
+.pf-v6-c-form__label-required,
+[aria-hidden="true"].pf-m-required {
+  color: var(--kimono-red) !important;
 }
 
 .pf-c-form-control,
@@ -238,21 +240,19 @@ label {
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
-  min-height: 48px;
-  border: 1px solid var(--kimono-line);
-  border-radius: 3px;
-  color: var(--kimono-sumi);
-  background: var(--kimono-paper-light);
-  box-shadow: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  min-height: 48px !important;
+  border: 1px solid var(--kimono-line) !important;
+  border-radius: 2px !important;
+  color: var(--kimono-sumi) !important;
+  background: #fff !important;
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
 
 .pf-c-form-control:hover,
 .pf-v5-c-form-control:hover,
 .pf-v6-c-form-control:hover,
 input:not([type="checkbox"]):not([type="radio"]):hover {
-  border-color: #b8ac9d;
-  background: #fffdf8;
+  border-color: #b9949d !important;
 }
 
 .pf-c-form-control:focus,
@@ -261,47 +261,51 @@ input:not([type="checkbox"]):not([type="radio"]):hover {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--kimono-plum);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kimono-plum) 14%, transparent);
-  outline: none;
+  border-color: var(--kimono-red) !important;
+  outline: 2px solid color-mix(in srgb, var(--kimono-red) 25%, transparent) !important;
+  outline-offset: 1px;
+}
+
+[aria-invalid="true"],
+.pf-m-error {
+  border-color: var(--kimono-red) !important;
 }
 
 .pf-c-check__input,
 .pf-v5-c-check__input,
 .pf-v6-c-check__input,
 input[type="checkbox"] {
-  accent-color: var(--kimono-plum);
+  accent-color: var(--kimono-red);
 }
 
 .pf-c-button.pf-m-primary,
 .pf-v5-c-button.pf-m-primary,
 .pf-v6-c-button.pf-m-primary {
-  min-height: 50px;
+  min-height: 50px !important;
   padding-inline: 18px;
-  border: 1px solid var(--kimono-sumi);
-  border-radius: 3px;
-  color: var(--kimono-paper-light);
-  background: var(--kimono-sumi);
-  box-shadow: none;
+  border: 1px solid var(--kimono-red) !important;
+  border-radius: 2px !important;
+  color: #fffdf8 !important;
+  background: var(--kimono-red) !important;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .055em;
-  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  font-weight: 720;
+  letter-spacing: .04em;
+  transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 .pf-c-button.pf-m-primary:hover,
 .pf-v5-c-button.pf-m-primary:hover,
 .pf-v6-c-button.pf-m-primary:hover {
-  background: #3a3732;
-  box-shadow: 0 9px 24px var(--kimono-shadow);
-  transform: translateY(-1px);
+  border-color: var(--kimono-plum) !important;
+  background: var(--kimono-plum) !important;
+  transform: none !important;
 }
 
 .pf-c-button.pf-m-primary:focus-visible,
 .pf-v5-c-button.pf-m-primary:focus-visible,
 .pf-v6-c-button.pf-m-primary:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--kimono-vermillion);
+  outline: 2px solid var(--kimono-red) !important;
   outline-offset: 3px;
 }
 
@@ -309,18 +313,18 @@ a:focus-visible {
 .pf-v5-c-button.pf-m-link,
 .pf-v6-c-button.pf-m-link,
 a {
-  color: var(--kimono-plum);
-  text-decoration-color: color-mix(in srgb, var(--kimono-plum) 35%, transparent);
+  color: var(--kimono-red);
+  text-decoration-color: color-mix(in srgb, var(--kimono-red) 45%, transparent);
   text-underline-offset: 3px;
 }
 
 .pf-c-alert,
 .pf-v5-c-alert,
 .pf-v6-c-alert {
-  border: 1px solid var(--kimono-line);
-  border-radius: 4px;
-  background: var(--kimono-paper-warm);
-  box-shadow: none;
+  border: 1px solid var(--kimono-line) !important;
+  border-left: 4px solid var(--kimono-red) !important;
+  border-radius: 0 !important;
+  background: var(--kimono-paper-warm) !important;
 }
 
 .pf-c-divider,
@@ -330,23 +334,40 @@ hr {
   border-color: var(--kimono-line);
 }
 
+/* Authentik remains the identity engine, but vendor promotion is not part of
+   the household login experience. Keep the flow's functional main footer. */
+.pf-c-login__footer,
+.pf-v5-c-login__footer,
+.pf-v6-c-login__footer,
+ak-powered-by,
+[class*="powered-by"],
+[class*="powered_by"],
+a[href*="goauthentik.io"] {
+  display: none !important;
+}
+
+ak-flow-executor::part(footer),
+ak-flow-executor::part(powered-by),
+ak-flow-executor::part(powered_by) {
+  display: none !important;
+}
+
 ak-flow-executor::part(locale-select) {
   color: var(--kimono-sumi-soft);
-  opacity: .74;
+  opacity: .8;
 }
 
 @media (max-width: 900px) {
   .pf-c-background-image,
   .pf-v5-c-background-image,
   .pf-v6-c-background-image {
-    background-position: 70% top !important;
-    background-size: auto 100% !important;
+    background-position: 72% center !important;
   }
 
-  .pf-c-login__main,
-  .pf-v5-c-login__main,
-  .pf-v6-c-login__main {
-    width: min(68vw, 600px);
+  .pf-c-background-image::before,
+  .pf-v5-c-background-image::before,
+  .pf-v6-c-background-image::before {
+    background: linear-gradient(90deg, var(--kimono-paper-light) 0 520px, rgba(255, 253, 251, .82) 620px, transparent 100%) !important;
   }
 }
 
@@ -354,16 +375,13 @@ ak-flow-executor::part(locale-select) {
   .pf-c-background-image,
   .pf-v5-c-background-image,
   .pf-v6-c-background-image {
-    background-color: var(--kimono-paper) !important;
     background-image: none !important;
+    background-color: var(--kimono-paper-light) !important;
   }
 
   .pf-c-background-image::before,
   .pf-v5-c-background-image::before,
-  .pf-v6-c-background-image::before {
-    background: linear-gradient(145deg, rgba(234, 208, 208, .3), transparent 38%) !important;
-  }
-
+  .pf-v6-c-background-image::before,
   .pf-c-background-image::after,
   .pf-v5-c-background-image::after,
   .pf-v6-c-background-image::after {
@@ -373,24 +391,16 @@ ak-flow-executor::part(locale-select) {
   .pf-c-login__main,
   .pf-v5-c-login__main,
   .pf-v6-c-login__main {
-    width: 100%;
-    min-height: 100svh;
-    border-right: 0;
-    background: color-mix(in srgb, var(--kimono-paper-light) 88%, transparent);
-    box-shadow: none;
-  }
-
-  .pf-c-login__main::after,
-  .pf-v5-c-login__main::after,
-  .pf-v6-c-login__main::after {
-    display: none;
+    position: relative !important;
+    width: 100% !important;
+    padding: 34px 22px 70px !important;
+    border-right: 0 !important;
   }
 
   .pf-c-brand,
   .pf-v5-c-brand,
   .pf-v6-c-brand {
-    width: 60px;
-    height: 60px;
+    width: 190px !important;
   }
 }
 
@@ -398,261 +408,7 @@ ak-flow-executor::part(locale-select) {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
     transition-duration: .01ms !important;
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .pf-c-login__main,
-  .pf-v5-c-login__main,
-  .pf-v6-c-login__main {
-    background: var(--kimono-paper-light);
-    backdrop-filter: none;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Living front door
-
-   Keep Authentik's maintained controls intact, but give the executor the same
-   architectural frame, paper nameplates, blossom color, and quiet motion as
-   the Kimono portal.
-   -------------------------------------------------------------------------- */
-
-body::before {
-  position: fixed;
-  z-index: 1;
-  top: -14vh;
-  right: 0;
-  width: 48vw;
-  height: 125vh;
-  content: "";
-  pointer-events: none;
-  background-image:
-    radial-gradient(ellipse at 16% 8%, rgba(225, 161, 172, .78) 0 4px, transparent 5px),
-    radial-gradient(ellipse at 72% 19%, rgba(242, 190, 199, .7) 0 5px, transparent 6px),
-    radial-gradient(ellipse at 39% 36%, rgba(205, 119, 135, .62) 0 3px, transparent 4px),
-    radial-gradient(ellipse at 82% 49%, rgba(232, 174, 184, .72) 0 4px, transparent 5px),
-    radial-gradient(ellipse at 28% 67%, rgba(213, 135, 150, .58) 0 4px, transparent 5px);
-  opacity: .62;
-  filter: blur(.15px);
-  animation: kimono-auth-petals 18s linear infinite;
-}
-
-.pf-c-background-image,
-.pf-v5-c-background-image,
-.pf-v6-c-background-image {
-  overflow: hidden;
-  background-color: #f6e5e7 !important;
-  background-size: min(72vw, 1160px) auto !important;
-  animation: kimono-auth-scene-arrive 900ms cubic-bezier(.16, 1, .3, 1) both;
-}
-
-.pf-c-background-image::before,
-.pf-v5-c-background-image::before,
-.pf-v6-c-background-image::before {
-  background:
-    linear-gradient(90deg, var(--kimono-paper) 0%, rgba(255, 248, 245, .99) 38%, rgba(255, 248, 245, .42) 66%, rgba(255, 248, 245, .08) 100%),
-    linear-gradient(90deg, transparent 49.9%, rgba(95, 52, 65, .055) 50%, transparent 50.1%),
-    linear-gradient(transparent 49.9%, rgba(95, 52, 65, .045) 50%, transparent 50.1%) !important;
-  background-size: auto, 25% 100%, 100% 25% !important;
-}
-
-.pf-c-login__container,
-.pf-v5-c-login__container,
-.pf-v6-c-login__container {
-  align-items: stretch;
-}
-
-.pf-c-login__main,
-.pf-v5-c-login__main,
-.pf-v6-c-login__main {
-  width: min(100%, 590px);
-  border-right: 1px solid color-mix(in srgb, var(--kimono-plum) 24%, transparent);
-  background:
-    linear-gradient(90deg, transparent 0 18px, rgba(95, 52, 65, .045) 18px 19px, transparent 19px),
-    color-mix(in srgb, var(--kimono-paper-light) 92%, transparent);
-  box-shadow: 18px 0 60px rgba(73, 39, 48, .075);
-  animation: kimono-auth-door-open 720ms cubic-bezier(.16, 1, .3, 1) 100ms both;
-}
-
-.pf-c-login__main::before,
-.pf-v5-c-login__main::before,
-.pf-v6-c-login__main::before {
-  position: absolute;
-  z-index: 3;
-  top: 0;
-  right: -5px;
-  left: 0;
-  height: 7px;
-  border-right: 10px solid var(--kimono-plum);
-  content: "";
-  background: linear-gradient(90deg, var(--kimono-plum), #80515d 72%, var(--kimono-sakura));
-  box-shadow: 0 3px 0 rgba(95, 52, 65, .09);
-}
-
-.pf-c-login__main-header,
-.pf-v5-c-login__main-header,
-.pf-v6-c-login__main-header {
-  position: relative;
-  border-bottom-color: color-mix(in srgb, var(--kimono-plum) 22%, transparent);
-  animation: kimono-auth-content-arrive 540ms cubic-bezier(.16, 1, .3, 1) 280ms both;
-}
-
-.pf-c-login__main-header::after,
-.pf-v5-c-login__main-header::after,
-.pf-v6-c-login__main-header::after {
-  position: absolute;
-  right: 0;
-  bottom: -4px;
-  width: 8px;
-  height: 8px;
-  border: 1px solid var(--kimono-sakura);
-  content: "";
-  background: var(--kimono-paper-light);
-  box-shadow: 0 0 0 2px var(--kimono-paper-light);
-  transform: rotate(45deg);
-}
-
-.pf-c-login__main-body,
-.pf-v5-c-login__main-body,
-.pf-v6-c-login__main-body {
-  animation: kimono-auth-content-arrive 600ms cubic-bezier(.16, 1, .3, 1) 360ms both;
-}
-
-.pf-c-brand,
-.pf-v5-c-brand,
-.pf-v6-c-brand {
-  width: 68px;
-  height: 68px;
-  animation: kimono-auth-bloom 680ms cubic-bezier(.16, 1, .3, 1) 420ms both;
-  transition: transform 300ms cubic-bezier(.16, 1, .3, 1), filter 300ms ease;
-}
-
-.pf-c-brand:hover,
-.pf-v5-c-brand:hover,
-.pf-v6-c-brand:hover {
-  filter: drop-shadow(0 9px 12px rgba(168, 77, 99, .2));
-  transform: rotate(5deg) scale(1.04);
-}
-
-.pf-c-title,
-.pf-v5-c-title,
-.pf-v6-c-title,
-.pf-c-login__main-header,
-.pf-v5-c-login__main-header,
-.pf-v6-c-login__main-header,
-h1,
-h2 {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-weight: 680;
-  letter-spacing: -.045em;
-}
-
-.pf-c-title.pf-m-3xl,
-.pf-v5-c-title.pf-m-3xl,
-.pf-v6-c-title.pf-m-3xl {
-  font-size: clamp(36px, 4vw, 50px);
-  line-height: .98;
-}
-
-.pf-c-form-control,
-.pf-v5-c-form-control,
-.pf-v6-c-form-control,
-input:not([type="checkbox"]):not([type="radio"]),
-select,
-textarea {
-  border-radius: 0 5px 0 5px;
-  box-shadow: inset 4px 0 color-mix(in srgb, var(--kimono-sakura) 38%, transparent);
-}
-
-.pf-c-form-control:focus,
-.pf-v5-c-form-control:focus,
-.pf-v6-c-form-control:focus,
-input:focus,
-select:focus,
-textarea:focus {
-  box-shadow: inset 4px 0 var(--kimono-sakura), 0 7px 18px rgba(95, 52, 65, .07);
-  transform: translateY(-1px);
-}
-
-.pf-c-button.pf-m-primary,
-.pf-v5-c-button.pf-m-primary,
-.pf-v6-c-button.pf-m-primary {
-  position: relative;
-  overflow: hidden;
-  border-color: var(--kimono-plum);
-  border-radius: 2px 2px 6px 6px;
-  background: linear-gradient(110deg, var(--kimono-sumi) 0 48%, var(--kimono-plum) 52% 100%);
-  background-position: 0 0;
-  background-size: 210% 100%;
-  transition: transform 180ms ease, background-position 420ms cubic-bezier(.16, 1, .3, 1), box-shadow 180ms ease;
-}
-
-.pf-c-button.pf-m-primary:hover,
-.pf-v5-c-button.pf-m-primary:hover,
-.pf-v6-c-button.pf-m-primary:hover {
-  background-position: 100% 0;
-  box-shadow: 0 12px 28px rgba(95, 52, 65, .16);
-}
-
-@keyframes kimono-auth-door-open {
-  from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-18px); }
-  to { opacity: 1; clip-path: inset(0); transform: translateX(0); }
-}
-
-@keyframes kimono-auth-content-arrive {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes kimono-auth-bloom {
-  0% { opacity: 0; transform: rotate(-14deg) scale(.55); }
-  72% { opacity: 1; transform: rotate(4deg) scale(1.06); }
-  100% { opacity: 1; transform: rotate(0) scale(1); }
-}
-
-@keyframes kimono-auth-scene-arrive {
-  from { opacity: .35; background-position: calc(100% + 45px) -18px; }
-  to { opacity: 1; background-position: right top; }
-}
-
-@keyframes kimono-auth-petals {
-  from { transform: translate3d(0, -5%, 0) rotate(0deg); }
-  to { transform: translate3d(-30px, 12%, 0) rotate(8deg); }
-}
-
-@media (max-width: 680px) {
-  body::before { display: none; }
-
-  .pf-c-login__main,
-  .pf-v5-c-login__main,
-  .pf-v6-c-login__main {
-    width: 100%;
-    background:
-      linear-gradient(90deg, transparent 0 12px, rgba(95, 52, 65, .04) 12px 13px, transparent 13px),
-      color-mix(in srgb, var(--kimono-paper-light) 94%, transparent);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::before,
-  .pf-c-background-image,
-  .pf-v5-c-background-image,
-  .pf-v6-c-background-image,
-  .pf-c-login__main,
-  .pf-v5-c-login__main,
-  .pf-v6-c-login__main,
-  .pf-c-login__main-header,
-  .pf-v5-c-login__main-header,
-  .pf-v6-c-login__main-header,
-  .pf-c-login__main-body,
-  .pf-v5-c-login__main-body,
-  .pf-v6-c-login__main-body,
-  .pf-c-brand,
-  .pf-v5-c-brand,
-  .pf-v6-c-brand {
-    animation: none;
+    animation-duration: .01ms !important;
   }
 }

@@ -77,7 +77,7 @@ if [ "$#" -eq 0 ]; then
   echo
   echo "What kind of Kimono VM is this?"
   echo "  1) Main server (Authentik + Headscale)"
-  echo "  2) Application node (Tailscale + Cloudflare Tunnel)"
+  echo "  2) Client node (Tailscale mesh access)"
   echo "  3) Install the CLI only"
   role=$(prompt "Choose 1, 2, or 3" "1")
   case "$role" in
@@ -94,8 +94,9 @@ fi
 if [ "$1" = "server" ]; then
   shift
   if [ "$#" -eq 0 ]; then
-    domain=$(prompt "Public base domain (for example, example.com)")
-    portal_host=$(prompt "Kimono Portal hostname (@ for apex, or www/kimono/full hostname)" "kimono")
+    domain=$(prompt "Public base domain (for example, kimonolabs.dev)")
+    portal_host=$(prompt "Kimono Portal name (@ for apex, a short label, or full hostname)" "kimono")
+    notes_host=$(prompt "Kimono Notes name (@ for apex, a short label, or full hostname)" "notes")
     email=$(prompt "Certificate email")
     if [ -z "$domain" ] || [ -z "$email" ]; then
       echo "Domain and email are required." >&2
@@ -106,15 +107,20 @@ if [ "$1" = "server" ]; then
       *.*) portal_domain="$portal_host" ;;
       *) portal_domain="${portal_host}.${domain}" ;;
     esac
+    case "$notes_host" in
+      @) notes_domain="$domain" ;;
+      *.*) notes_domain="$notes_host" ;;
+      *) notes_domain="${notes_host}.${domain}" ;;
+    esac
     dynamic_dns=$(prompt "Configure Cloudflare Dynamic DNS? (y/N)" "n")
     case "$dynamic_dns" in
       y|Y|yes|YES)
-        "$install_path" server install --domain "$domain" --portal-domain "$portal_domain" --email "$email" --no-start
+        "$install_path" server install --domain "$domain" --portal-domain "$portal_domain" --notes-domain "$notes_domain" --email "$email" --no-start
         "$install_path" server cloudflare-ddns setup
         exec "$install_path" server start
         ;;
     esac
-    set -- --domain "$domain" --portal-domain "$portal_domain" --email "$email"
+    set -- --domain "$domain" --portal-domain "$portal_domain" --notes-domain "$notes_domain" --email "$email"
   fi
   exec "$install_path" server install "$@"
 fi
@@ -123,14 +129,13 @@ if [ "$1" = "node" ]; then
   shift
   if [ "$#" -eq 0 ]; then
     server_url=$(prompt "Kimono mesh URL (for example, https://mesh.example.com)")
-    domain=$(prompt "Cloudflare application domain (for example, apps.example.com)")
     default_machine=$(hostname 2>/dev/null || printf 'node')
     machine=$(prompt "Machine name" "$default_machine")
-    if [ -z "$server_url" ] || [ -z "$domain" ] || [ -z "$machine" ]; then
-      echo "Mesh URL, application domain, and machine name are required." >&2
+    if [ -z "$server_url" ] || [ -z "$machine" ]; then
+      echo "Mesh URL and machine name are required." >&2
       exit 1
     fi
-    set -- --server "$server_url" --domain "$domain" --name "$machine"
+    set -- --server "$server_url" --name "$machine"
   fi
   exec "$install_path" node install "$@"
 fi

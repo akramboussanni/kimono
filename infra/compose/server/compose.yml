@@ -38,6 +38,7 @@ services:
       KIMONO_PORTAL_OIDC_CLIENT_ID: ${KIMONO_PORTAL_OIDC_CLIENT_ID:-kimono-portal}
       KIMONO_PORTAL_OIDC_CLIENT_SECRET: ${KIMONO_PORTAL_OIDC_CLIENT_SECRET:?Portal OIDC secret required}
       KIMONO_PORTAL_OIDC_REDIRECT_URI: ${KIMONO_PORTAL_OIDC_REDIRECT_URI:?Portal OIDC redirect required}
+      KIMONO_PORTAL_API_TOKEN: ${KIMONO_PORTAL_API_TOKEN:?Portal directory token required}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -122,6 +123,15 @@ services:
       - headscale_config:/etc/headscale:ro
       - headscale_data:/var/lib/headscale
 
+  portal-config:
+    image: docker.io/library/alpine:3.22
+    command: ["chown", "-R", "1000:1000", "/config"]
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ${KIMONO_PORTAL_STATE_PATH:-/var/lib/kimono-portal}:/config
+
   portal:
     image: ghcr.io/kimonoapps/kimono-portal:${KIMONO_PORTAL_TAG:-latest}
     restart: unless-stopped
@@ -130,9 +140,44 @@ services:
       AUTHENTIK_CLIENT_ID: ${KIMONO_PORTAL_OIDC_CLIENT_ID:-kimono-portal}
       AUTHENTIK_CLIENT_SECRET: ${KIMONO_PORTAL_OIDC_CLIENT_SECRET:?Portal OIDC secret required}
       AUTH_SECRET: ${KIMONO_PORTAL_SESSION_SECRET:?Portal session secret required}
+      # Pin the public origin: behind the proxy the container would otherwise
+      # derive sign-in redirects from its own bind address.
+      AUTH_URL: https://${KIMONO_PORTAL_DOMAIN}/api/auth
+      AUTH_TRUST_HOST: "true"
+      KIMONO_BASE_DOMAIN: ${KIMONO_BASE_DOMAIN:?base domain required}
+      KIMONO_IDENTITY_DOMAIN: ${AUTHENTIK_DOMAIN:?Authentik domain required}
+      KIMONO_IDENTITY_API_URL: ${KIMONO_IDENTITY_API_URL:-http://authentik-server:9000}
+      KIMONO_IDENTITY_API_TOKEN: ${KIMONO_PORTAL_API_TOKEN:?Portal directory token required}
+      KIMONO_MESH_DOMAIN: ${MESH_DOMAIN:?mesh domain required}
+      KIMONO_MESH_API_URL: ${KIMONO_MESH_API_URL:-http://headscale:8080}
+      KIMONO_MESH_API_KEY: ${KIMONO_MESH_API_KEY:-}
     depends_on:
       authentik-server:
         condition: service_healthy
+      portal-config:
+        condition: service_completed_successfully
+    volumes:
+      - ${KIMONO_PORTAL_STATE_PATH:-/var/lib/kimono-portal}:/var/lib/kimono-portal
+      - ${KIMONO_APP_DEFINITIONS_PATH:-./app-definitions}:/etc/kimono/app-definitions:ro
+
+  reconciler:
+    image: ghcr.io/kimonoapps/kimono-reconciler:${KIMONO_RECONCILER_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      KIMONO_PORTAL_STATE_DIR: /var/lib/kimono-portal
+      KIMONO_BLUEPRINT_DIR: /blueprints/kimono
+    depends_on:
+      portal-config:
+        condition: service_completed_successfully
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      # The engine resolves generated bind mounts against the host, so the state
+      # directories must appear at identical paths inside this container.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${KIMONO_PORTAL_STATE_PATH:-/var/lib/kimono-portal}:/var/lib/kimono-portal
+      - ${KIMONO_STATE_PATH:-/var/lib/kimono}:/var/lib/kimono
+      - ./authentik/blueprints:/blueprints/kimono
 
   caddy:
     image: docker.io/library/caddy:${CADDY_TAG:-2.10.2-alpine}
@@ -153,8 +198,9 @@ services:
       - no-new-privileges:true
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ${KIMONO_SAKURA_ASSET_PATH:-../../../apps/portal/public/art/sakura-branch-v2.png}:/srv/kimono-brand/sakura-branch-v2.png:ro
-      - ${KIMONO_MARK_ASSET_PATH:-../../../apps/portal/public/kimono-sakura-mark.svg}:/srv/kimono-brand/kimono-sakura-mark.svg:ro
+      # One directory rather than a mount per file, so a new brand asset is
+      # available to Authentik without editing Compose.
+      - ${KIMONO_BRAND_ASSET_PATH:-../../../apps/portal/public/brand}:/srv/kimono-brand:ro
       - caddy_data:/data
       - caddy_config:/config
 
