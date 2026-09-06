@@ -1,0 +1,109 @@
+{
+  "apiVersion": "apps.kimono.dev/v1alpha1",
+  "kind": "AppDefinition",
+  "metadata": {
+    "id": "forgejo",
+    "name": "Kimono Git",
+    "shortName": "Git",
+    "description": "Self-hosted Git repositories, code review, and CI",
+    "category": "Development",
+    "version": "16.0.3",
+    "icon": "icon.svg",
+    "colors": ["#8a6a4a", "#3f3027", "#ead9c4"]
+  },
+  "spec": {
+    "integration": "connected",
+    "services": [
+      {
+        "id": "web",
+        "image": "codeberg.org/forgejo/forgejo:16.0.3",
+        "endpoint": { "id": "web", "port": 3000, "protocol": "http" },
+        "environment": {
+          "USER_UID": "1000",
+          "USER_GID": "1000",
+          "FORGEJO__server__ROOT_URL": "https://{{hostname}}",
+          "FORGEJO__server__PROTOCOL": "http",
+          "FORGEJO__server__HTTP_PORT": "3000",
+          "FORGEJO__database__DB_TYPE": "sqlite3",
+          "FORGEJO__database__PATH": "/data/forgejo/forgejo.db",
+          "FORGEJO__service__ENABLE_NOTIFY_MAIL": "false",
+          "FORGEJO__oauth2_client__ENABLE_AUTO_REGISTRATION": "true",
+          "FORGEJO__oauth2_client__USERNAME": "preferred_username",
+          "FORGEJO__oauth2_client__OPENID_CONNECT_SCOPES": "profile email"
+        }
+      }
+    ],
+    "volumes": [
+      { "id": "data", "service": "web", "path": "/data", "backup": true }
+    ],
+    "identity": {
+      "redirectUris": ["https://{{hostname}}/user/oauth2/Kimono/callback"],
+      "environment": {
+        "FORGEJO__oauth2_client__OPENID_CONNECT_SCOPES": "openid profile email"
+      }
+    },
+    "manualSetup": {
+      "title": "Finish in Forgejo",
+      "description": "Kimono runs Forgejo and registers its Kimono identity client. Add that client as an OpenID Connect authentication source in Forgejo before signing in with Kimono.",
+      "steps": [
+        "Open Forgejo and complete its initial administrator setup.",
+        "As an administrator, open Site Administration → Authentication Sources and add an OpenID Connect source named Kimono.",
+        "Use the Kimono client ID and secret from the generated deployment files, and use the Kimono identity discovery URL shown in the deployment configuration.",
+        "Keep local administrator sign-in enabled as a recovery path for identity outages."
+      ]
+    },
+    "configuration": [
+      {
+        "key": "FORGEJO__service__DISABLE_REGISTRATION",
+        "label": "Disable registration",
+        "kind": "toggle",
+        "group": "general",
+        "default": "on",
+        "description": "Prevent unauthenticated users from creating accounts."
+      },
+      {
+        "key": "FORGEJO__repository__DEFAULT_BRANCH",
+        "label": "Default branch",
+        "kind": "text",
+        "group": "general",
+        "default": "main",
+        "description": "Default branch name for newly created repositories."
+      },
+      {
+        "key": "FORGEJO__service__REQUIRE_SIGNIN_VIEW",
+        "label": "Require sign-in",
+        "kind": "toggle",
+        "group": "general",
+        "default": "off",
+        "description": "Require users to sign in before viewing repositories."
+      },
+      {
+        "key": "FORGEJO__log__LEVEL",
+        "label": "Log level",
+        "kind": "select",
+        "group": "diagnostics",
+        "default": "Info",
+        "options": ["Trace", "Debug", "Info", "Warn", "Error"],
+        "advanced": true
+      }
+    ],
+    "managedEnvironment": [
+      "USER_UID",
+      "USER_GID",
+      "FORGEJO__server__ROOT_URL",
+      "FORGEJO__server__PROTOCOL",
+      "FORGEJO__server__HTTP_PORT",
+      "FORGEJO__database__DB_TYPE",
+      "FORGEJO__database__PATH",
+      "FORGEJO__service__ENABLE_NOTIFY_MAIL",
+      "FORGEJO__oauth2_client__ENABLE_AUTO_REGISTRATION",
+      "FORGEJO__oauth2_client__USERNAME",
+      "FORGEJO__oauth2_client__OPENID_CONNECT_SCOPES",
+      "FORGEJO__service__DISABLE_REGISTRATION",
+      "FORGEJO__repository__DEFAULT_BRANCH",
+      "FORGEJO__service__REQUIRE_SIGNIN_VIEW",
+      "FORGEJO__log__LEVEL"
+    ],
+    "defaultNetworkPolicy": { "internetAccess": true, "allowedApps": [] }
+  }
+}

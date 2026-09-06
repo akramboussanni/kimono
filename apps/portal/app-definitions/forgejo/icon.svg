@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Git</title>
+  <path d="M50 8 92 50 50 92 8 50 50 8Z" fill="#8a6a4a" stroke="#3f3027" stroke-width="6"/>
+  <path d="m29 50 14 14 28-28" stroke="#ead9c4" stroke-width="8" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>
