@@ -54,6 +54,9 @@ func (m *Manager) Execute(args []string) error {
 	case "update":
 		return m.update()
 	case "backup":
+		if len(args) > 1 && (args[1] == "run" || args[1] == "check" || args[1] == "restore" || args[1] == "import-kit") {
+			return m.encryptedBackup(args[1:])
+		}
 		return m.backup(args[1:])
 	default:
 		return fmt.Errorf("unknown server command %q", args[0])

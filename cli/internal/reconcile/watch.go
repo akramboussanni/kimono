@@ -15,6 +15,11 @@ func (r *Reconciler) Watch(ctx context.Context, interval, retry time.Duration) e
 	applied := ""
 	nextRetry := time.Time{}
 	for {
+		if r.Idle != nil {
+			if err := r.Idle(ctx); err != nil {
+				_, _ = fmt.Fprintf(r.Runner.Stderr, "backup: %v\n", err)
+			}
+		}
 		current, err := fingerprint(r.Paths.PlanPath())
 		switch {
 		case err != nil:

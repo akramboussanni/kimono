@@ -74,19 +74,25 @@
         "id": "library",
         "service": "server",
         "path": "/data",
-        "backup": true
+        "backup": true,
+        "backupLabel": "Photos and videos",
+        "backupDescription": "Uploaded originals, thumbnails, and other library files. Back up together with the database."
       },
       {
         "id": "database",
         "service": "database",
         "path": "/var/lib/postgresql/data",
-        "backup": true
+        "backup": true,
+        "backupLabel": "Photo database",
+        "backupDescription": "Albums, metadata, users, and library references. Back up together with photos and videos."
       },
       {
         "id": "model-cache",
         "service": "machine-learning",
         "path": "/cache",
-        "backup": false
+        "backup": false,
+        "backupLabel": "Machine learning cache",
+        "backupDescription": "Downloaded models that Immich can download again."
       }
     ],
     "identity": {
@@ -502,6 +508,61 @@
     "defaultNetworkPolicy": {
       "internetAccess": true,
       "allowedApps": []
-    }
+    },
+    "backups": [
+      {
+        "id": "database",
+        "label": "Photo database",
+        "description": "Albums, users, metadata, and asset references. Pair with photos and videos.",
+        "method": "postgres",
+        "enabledByDefault": true,
+        "service": "database",
+        "database": "immich",
+        "username": "immich"
+      },
+      {
+        "id": "photos",
+        "label": "Photos and videos",
+        "description": "Originals in library and upload, plus profile images. External libraries are not included.",
+        "method": "files",
+        "enabledByDefault": true,
+        "volume": "library",
+        "paths": [
+          "library",
+          "upload",
+          "profile"
+        ]
+      },
+      {
+        "id": "previews",
+        "label": "Thumbnails and converted videos",
+        "description": "Generated previews and video conversions; Immich can regenerate these.",
+        "method": "files",
+        "enabledByDefault": false,
+        "volume": "library",
+        "paths": [
+          "thumbs",
+          "encoded-video"
+        ]
+      },
+      {
+        "id": "config",
+        "label": "Configuration (config.json)",
+        "description": "The rendered Immich configuration, including sign-in and other secrets.",
+        "method": "settings",
+        "enabledByDefault": true
+      },
+      {
+        "id": "models",
+        "label": "Machine learning models",
+        "description": "Downloaded models that can be downloaded again.",
+        "method": "files",
+        "enabledByDefault": false,
+        "volume": "model-cache",
+        "paths": [
+          "."
+        ]
+      }
+    ]
   }
 }

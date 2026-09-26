@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"github.com/kimonoapps/kimono/cli/internal/backup"
 	"os"
 	"path/filepath"
 	"time"
@@ -47,6 +48,10 @@ func (m *Manager) apply(args []string) error {
 		return err
 	}
 	reconciler := reconcile.New(m.Runner, m.reconcilePaths())
+	worker := backup.New(m.Home, filepath.Dir(m.reconcilePaths().DeploymentDir))
+	if !m.Runner.DryRun {
+		reconciler.Idle = worker.Tick
+	}
 	if *watch {
 		err := reconciler.Watch(context.Background(), watchInterval, retryInterval)
 		if errors.Is(err, context.Canceled) {

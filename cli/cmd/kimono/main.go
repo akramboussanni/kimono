@@ -70,7 +70,7 @@ Server commands:
   cloudflare-ddns  Keep server DNS pointed at a dynamic public IP
   logs      Follow appliance logs
   update    Pull pinned service updates and recreate the appliance
-  backup    Stop briefly and create a complete volume backup
+  backup    Encrypted backups: run, check, restore, import-kit
 
 Node commands:
   install   Install Tailscale and join the Kimono private mesh

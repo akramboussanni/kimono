@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { readBackupConfig } from "@/lib/backups";
 import { AppShell } from "@/components/app-shell";
 import { getAppDefinition, type ConfigurationField } from "@/lib/definitions";
 import {
@@ -62,6 +63,7 @@ export default async function AppManagementPage({
   const [definition, settings] = await Promise.all([getAppDefinition(id), getPlatformSettings()]);
   if (!definition) notFound();
   const instance = settings.apps[id];
+  const backupConfig = await readBackupConfig();
   // An app that keeps its own settings document earns a Settings view; the
   // Advanced view stays what it has always been, this stack's variables.
   const availableViews = views.filter((item) => item.id !== "settings" || definition.spec.configuration.some((field) => field.target === "settings"));
@@ -258,7 +260,14 @@ export default async function AppManagementPage({
               {selectedView === "storage" ? (
                 <section>
                   <header className="panel-heading"><div><h2>Storage</h2><p>Persistent volumes declared by the app stack.</p></div></header>
-                  {definition.spec.volumes.length ? <div className="storage-table">{definition.spec.volumes.map((volume) => <div key={volume.id}><strong>{volume.id}</strong><code>{volume.service}:{volume.path}</code><span>{volume.backup ? "Included in backups" : "Not backed up"}</span></div>)}</div> : <p className="catalog-empty">This app does not declare persistent volumes.</p>}
+                  {definition.spec.volumes.length ? <div className="storage-table">{definition.spec.volumes.map((volume) => <div key={volume.id}><strong>{volume.backupLabel || volume.id}</strong><code>{volume.service}:{volume.path}</code><span>{volume.backupDescription || "Persistent app data"}</span></div>)}</div> : <p className="catalog-empty">This app does not declare persistent volumes.</p>}
+                  <h3>Backup items</h3>
+                  <p>{backupConfig?.enabled ? "Automatic backups are enabled." : "Automatic backups are not enabled."} Select this app and its individual items in Backups.</p>
+                  {definition.spec.backups?.length ? <div className="storage-table">{definition.spec.backups.map((item) => {
+                    const selected = (backupConfig?.apps[id] ?? instance?.enabled ?? false) && (backupConfig?.items[`${id}/${item.id}`] ?? item.enabledByDefault);
+                    return <div key={item.id}><strong>{item.label}</strong><span>{item.description}</span><span>{selected ? "Selected" : "Excluded"}</span></div>;
+                  })}</div> : <p>No online backup items declared.</p>}
+                  <SealLink href={`/admin/backups#${id}`}>Manage backups</SealLink>
                 </section>
               ) : null}
               </div>

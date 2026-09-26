@@ -1,4 +1,5 @@
 import type { AppDefinition, ConfigurationField } from "./definitions";
+import { backupCatalog, type BackupItem } from "./backup-catalog";
 import { appHostname, type AppRoute, type PlatformSettings } from "./settings";
 import { tunnelCredentialsPath } from "./state";
 import { renderMeshPolicy } from "./mesh-policy";
@@ -17,6 +18,7 @@ type ComposeService = {
 };
 
 export type DeploymentPlan = {
+  backupItems: BackupItem[];
   apiVersion: "deployment.kimono.dev/v1alpha1";
   runtime: { id: "server"; engine: "docker-compose" };
   compose: {
@@ -213,6 +215,7 @@ ${redirects}
 export function renderDeploymentPlan(settings: PlatformSettings, definitions: AppDefinition[], meshMembers: Record<string, MeshMember> = {}): DeploymentPlan {
   const definitionById = new Map(definitions.map((definition) => [definition.metadata.id, definition]));
   const plan: DeploymentPlan = {
+    backupItems: backupCatalog(settings, definitions),
     apiVersion: "deployment.kimono.dev/v1alpha1",
     runtime: { id: "server", engine: "docker-compose" },
     compose: { name: "kimono-apps", services: {}, volumes: {}, networks: { "kimono-edge": {} } },

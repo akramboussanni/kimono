@@ -9,7 +9,11 @@
     "category": "Development",
     "version": "16.0.3",
     "icon": "icon.svg",
-    "colors": ["#8a6a4a", "#3f3027", "#ead9c4"]
+    "colors": [
+      "#8a6a4a",
+      "#3f3027",
+      "#ead9c4"
+    ]
   },
   "spec": {
     "integration": "connected",
@@ -17,7 +21,11 @@
       {
         "id": "web",
         "image": "codeberg.org/forgejo/forgejo:16.0.3",
-        "endpoint": { "id": "web", "port": 3000, "protocol": "http" },
+        "endpoint": {
+          "id": "web",
+          "port": 3000,
+          "protocol": "http"
+        },
         "environment": {
           "USER_UID": "1000",
           "USER_GID": "1000",
@@ -34,10 +42,19 @@
       }
     ],
     "volumes": [
-      { "id": "data", "service": "web", "path": "/data", "backup": true }
+      {
+        "id": "data",
+        "service": "web",
+        "path": "/data",
+        "backup": true,
+        "backupLabel": "Repositories and Forgejo data",
+        "backupDescription": "Git repositories, database, attachments, SSH keys, and application configuration."
+      }
     ],
     "identity": {
-      "redirectUris": ["https://{{hostname}}/user/oauth2/Kimono/callback"],
+      "redirectUris": [
+        "https://{{hostname}}/user/oauth2/Kimono/callback"
+      ],
       "environment": {
         "FORGEJO__oauth2_client__OPENID_CONNECT_SCOPES": "openid profile email"
       }
@@ -47,7 +64,7 @@
       "description": "Kimono runs Forgejo and registers its Kimono identity client. Add that client as an OpenID Connect authentication source in Forgejo before signing in with Kimono.",
       "steps": [
         "Open Forgejo and complete its initial administrator setup.",
-        "As an administrator, open Site Administration → Authentication Sources and add an OpenID Connect source named Kimono.",
+        "As an administrator, open Site Administration \u2192 Authentication Sources and add an OpenID Connect source named Kimono.",
         "Use the Kimono client ID and secret from the generated deployment files, and use the Kimono identity discovery URL shown in the deployment configuration.",
         "Keep local administrator sign-in enabled as a recovery path for identity outages."
       ]
@@ -83,7 +100,13 @@
         "kind": "select",
         "group": "diagnostics",
         "default": "Info",
-        "options": ["Trace", "Debug", "Info", "Warn", "Error"],
+        "options": [
+          "Trace",
+          "Debug",
+          "Info",
+          "Warn",
+          "Error"
+        ],
         "advanced": true
       }
     ],
@@ -104,6 +127,39 @@
       "FORGEJO__service__REQUIRE_SIGNIN_VIEW",
       "FORGEJO__log__LEVEL"
     ],
-    "defaultNetworkPolicy": { "internetAccess": true, "allowedApps": [] }
+    "defaultNetworkPolicy": {
+      "internetAccess": true,
+      "allowedApps": []
+    },
+    "backups": [
+      {
+        "id": "database",
+        "label": "Forgejo database",
+        "description": "Online SQLite export of users, issues, and repository metadata.",
+        "method": "sqlite",
+        "enabledByDefault": true,
+        "volume": "data",
+        "paths": [
+          "forgejo/forgejo.db"
+        ]
+      },
+      {
+        "id": "files",
+        "label": "Repositories and configuration",
+        "description": "Repositories, attachments, SSH keys, and configuration; database is a separate item.",
+        "method": "files",
+        "enabledByDefault": true,
+        "volume": "data",
+        "paths": [
+          "."
+        ],
+        "exclude": [
+          "forgejo/forgejo.db",
+          "forgejo/forgejo.db-wal",
+          "forgejo/forgejo.db-shm",
+          "forgejo/forgejo.db-journal"
+        ]
+      }
+    ]
   }
 }

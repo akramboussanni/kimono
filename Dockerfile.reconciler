@@ -10,6 +10,7 @@ COPY cli cli
 RUN CGO_ENABLED=0 go build -o /out/kimono ./cli/cmd/kimono
 
 FROM docker:28-cli
+RUN apk add --no-cache restic sqlite tar
 
 # Links this image to its repository, which is what grants the repository's
 # own Actions token permission to publish it.

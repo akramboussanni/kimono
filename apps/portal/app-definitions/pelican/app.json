@@ -9,7 +9,11 @@
     "category": "Games",
     "version": "1.0.0-beta38",
     "icon": "icon.svg",
-    "colors": ["#4f7794", "#294458", "#d8e4e9"]
+    "colors": [
+      "#4f7794",
+      "#294458",
+      "#d8e4e9"
+    ]
   },
   "spec": {
     "integration": "connected",
@@ -17,7 +21,11 @@
       {
         "id": "panel",
         "image": "ghcr.io/pelican/panel:v1.0.0-beta38",
-        "endpoint": { "id": "web", "port": 80, "protocol": "http" },
+        "endpoint": {
+          "id": "web",
+          "port": 80,
+          "protocol": "http"
+        },
         "environment": {
           "APP_URL": "https://{{hostname}}",
           "APP_ENV": "production",
@@ -29,12 +37,35 @@
       }
     ],
     "volumes": [
-      { "id": "data", "service": "panel", "path": "/pelican-data", "backup": true },
-      { "id": "plugins", "service": "panel", "path": "/var/www/html/plugins", "backup": true },
-      { "id": "logs", "service": "panel", "path": "/var/www/html/storage/logs", "backup": false }
+      {
+        "id": "data",
+        "service": "panel",
+        "path": "/pelican-data",
+        "backup": true,
+        "backupLabel": "Panel database and configuration",
+        "backupDescription": "Panel data and settings. Game server files on Wings machines are outside this backup."
+      },
+      {
+        "id": "plugins",
+        "service": "panel",
+        "path": "/var/www/html/plugins",
+        "backup": true,
+        "backupLabel": "Panel plugins",
+        "backupDescription": "Installed panel plugin files."
+      },
+      {
+        "id": "logs",
+        "service": "panel",
+        "path": "/var/www/html/storage/logs",
+        "backup": false,
+        "backupLabel": "Panel logs",
+        "backupDescription": "Diagnostic logs; optional and excluded by default."
+      }
     ],
     "identity": {
-      "redirectUris": ["https://{{hostname}}/auth/oauth/callback/authentik"],
+      "redirectUris": [
+        "https://{{hostname}}/auth/oauth/callback/authentik"
+      ],
       "environment": {
         "OAUTH_AUTHENTIK_ENABLED": "true",
         "OAUTH_AUTHENTIK_CLIENT_ID": "{{oidc.clientId}}",
@@ -58,7 +89,23 @@
         "advanced": true
       }
     ],
-    "managedEnvironment": ["APP_URL", "APP_ENV", "APP_DEBUG", "BEHIND_PROXY", "XDG_DATA_HOME", "MAIL_DRIVER", "OAUTH_AUTHENTIK_ENABLED", "OAUTH_AUTHENTIK_CLIENT_ID", "OAUTH_AUTHENTIK_CLIENT_SECRET", "OAUTH_AUTHENTIK_BASE_URL", "OAUTH_AUTHENTIK_DISPLAY_NAME", "OAUTH_AUTHENTIK_DISPLAY_COLOR", "OAUTH_AUTHENTIK_SHOULD_CREATE_MISSING_USERS", "OAUTH_AUTHENTIK_SHOULD_LINK_MISSING_USERS", "AUTH_DISABLE_PASSWORD_LOGIN"],
+    "managedEnvironment": [
+      "APP_URL",
+      "APP_ENV",
+      "APP_DEBUG",
+      "BEHIND_PROXY",
+      "XDG_DATA_HOME",
+      "MAIL_DRIVER",
+      "OAUTH_AUTHENTIK_ENABLED",
+      "OAUTH_AUTHENTIK_CLIENT_ID",
+      "OAUTH_AUTHENTIK_CLIENT_SECRET",
+      "OAUTH_AUTHENTIK_BASE_URL",
+      "OAUTH_AUTHENTIK_DISPLAY_NAME",
+      "OAUTH_AUTHENTIK_DISPLAY_COLOR",
+      "OAUTH_AUTHENTIK_SHOULD_CREATE_MISSING_USERS",
+      "OAUTH_AUTHENTIK_SHOULD_LINK_MISSING_USERS",
+      "AUTH_DISABLE_PASSWORD_LOGIN"
+    ],
     "manualSetup": {
       "title": "Finish in Pelican",
       "description": "Kimono runs and publishes the unmodified Pelican panel and configures Sign in with Kimono automatically. Pelican keeps its own installer, server templates, permissions, and node credentials.",
@@ -68,6 +115,61 @@
         "Create each node in Pelican, then install Wings on that machine with the configuration Pelican provides. Kimono does not provision or manage Wings nodes."
       ]
     },
-    "defaultNetworkPolicy": { "internetAccess": true, "allowedApps": [] }
+    "defaultNetworkPolicy": {
+      "internetAccess": true,
+      "allowedApps": []
+    },
+    "backups": [
+      {
+        "id": "database",
+        "label": "Panel database",
+        "description": "Online SQLite export. External databases and Wings game-server files require separate backups.",
+        "method": "sqlite",
+        "enabledByDefault": true,
+        "volume": "data",
+        "paths": [
+          "database/database.sqlite"
+        ]
+      },
+      {
+        "id": "config",
+        "label": "Panel configuration and encryption key",
+        "description": "Persistent panel files, including .env and APP_KEY. Required to decrypt restored panel data.",
+        "method": "files",
+        "enabledByDefault": true,
+        "volume": "data",
+        "paths": [
+          "."
+        ],
+        "exclude": [
+          "database/database.sqlite",
+          "database/database.sqlite-wal",
+          "database/database.sqlite-shm",
+          "database/database.sqlite-journal"
+        ]
+      },
+      {
+        "id": "plugins",
+        "label": "Panel plugins",
+        "description": "Installed plugin files.",
+        "method": "files",
+        "enabledByDefault": true,
+        "volume": "plugins",
+        "paths": [
+          "."
+        ]
+      },
+      {
+        "id": "logs",
+        "label": "Panel logs",
+        "description": "Diagnostic logs.",
+        "method": "files",
+        "enabledByDefault": false,
+        "volume": "logs",
+        "paths": [
+          "."
+        ]
+      }
+    ]
   }
 }

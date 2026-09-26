@@ -167,6 +167,7 @@ services:
     environment:
       KIMONO_PORTAL_STATE_DIR: /var/lib/kimono-portal
       KIMONO_BLUEPRINT_DIR: /blueprints/kimono
+      KIMONO_BACKUP_HELPER_IMAGE: ghcr.io/kimonoapps/kimono-reconciler:${KIMONO_RECONCILER_TAG:-latest}
     depends_on:
       portal-config:
         condition: service_completed_successfully
@@ -179,6 +180,7 @@ services:
       - ${KIMONO_PORTAL_STATE_PATH:-/var/lib/kimono-portal}:/var/lib/kimono-portal
       - ${KIMONO_STATE_PATH:-/var/lib/kimono}:/var/lib/kimono
       - ./authentik/blueprints:/blueprints/kimono
+      - ${KIMONO_APP_DEFINITIONS_PATH:-./app-definitions}:/etc/kimono/app-definitions:ro
 
   caddy:
     image: docker.io/library/caddy:${CADDY_TAG:-2.10.2-alpine}

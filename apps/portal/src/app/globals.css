@@ -1215,3 +1215,20 @@ button, input { color: inherit; font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
+
+/* Backup controls follow the administration form layout. */
+.backup-workspace { display: grid; gap: 1.5rem; }
+.backup-settings { display: grid; gap: 1.5rem; }
+.backup-section { padding: 1.5rem; display: grid; gap: 1rem; }
+.backup-section p { max-width: 80ch; }
+.backup-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; align-items: end; }
+.backup-fields label { display: grid; gap: .4rem; }
+.backup-fields input, .backup-fields select { width: 100%; min-width: 0; padding: .6rem; border: 1px solid currentColor; border-radius: .3rem; background: transparent; }
+.backup-toggle { display: flex; gap: .65rem; align-items: center; }
+.backup-app { border: 1px solid color-mix(in srgb, currentColor 20%, transparent); padding: 1rem; display: grid; gap: 1rem; }
+.backup-app legend { padding: 0 .4rem; font-weight: 600; }
+.backup-item { display: flex; gap: .75rem; align-items: flex-start; }
+.backup-item input { margin-top: .3rem; }
+.backup-item span { display: grid; gap: .3rem; }
+.backup-item small { opacity: .7; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: .75rem; }

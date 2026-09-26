@@ -26,6 +26,20 @@ export type ConfigurationField = {
  */
 export type SettingsFile = { service: string; path: string; document: unknown };
 
+export type BackupSource = {
+  id: string;
+  label: string;
+  description: string;
+  enabledByDefault: boolean;
+  method: "files" | "postgres" | "sqlite" | "settings";
+  volume?: string;
+  service?: string;
+  paths?: string[];
+  exclude?: string[];
+  database?: string;
+  username?: string;
+};
+
 /**
  * How a connected app receives single sign-on. Outline reads OIDC settings from
  * its environment; other apps expect a configuration file, and every app owns
@@ -63,7 +77,8 @@ export type AppDefinition = {
       endpoint?: { id: string; port: number; protocol: "http" | "https" | "tcp" };
       environment?: Record<string, string>;
     }>;
-    volumes: Array<{ id: string; service: string; path: string; backup: boolean }>;
+    volumes: Array<{ id: string; service: string; path: string; backup: boolean; backupLabel?: string; backupDescription?: string }>;
+    backups?: BackupSource[];
     identity?: IdentityIntegration;
     settingsFile?: SettingsFile;
     /** Work the upstream application deliberately leaves to its own UI or tooling. */
@@ -101,9 +116,43 @@ function parseDefinition(value: unknown, directory: string, source: AppDefinitio
   if (!Array.isArray(definition.spec?.services) || !Array.isArray(definition.spec?.configuration)) throw new Error("spec.services and spec.configuration are required");
   if (definition.spec.integration === "connected") validateIdentity(definition.spec.identity);
   validateManualSetup(definition.spec.manualSetup);
+  if (!Array.isArray(definition.spec.volumes)) throw new Error("spec.volumes is required");
+  const volumeIds = new Set<string>();
+  for (const volume of definition.spec.volumes) {
+    if (!idPattern.test(volume.id) || volumeIds.has(volume.id)) throw new Error("volume IDs must be unique lowercase slugs");
+    volumeIds.add(volume.id);
+    if (!definition.spec.services.some((service) => service.id === volume.service)) throw new Error(`volume ${volume.id} names an unknown service`);
+    if (typeof volume.backup !== "boolean") throw new Error(`volume ${volume.id} must explicitly declare backup true or false`);
+    for (const value of [volume.backupLabel, volume.backupDescription]) {
+      if (value !== undefined && (typeof value !== "string" || !value.trim() || value.length > 1000)) throw new Error(`volume ${volume.id} has invalid backup text`);
+    }
+  }
   validateSettings(definition.spec.settingsFile, definition.spec.configuration, definition.spec.services);
+  validateBackups(definition);
   const iconPath = join(directory, definition.metadata.icon);
   return { ...definition, source, iconPath, iconUrl: `/api/app-definitions/${definition.metadata.id}/icon` };
+}
+
+function validateBackups(definition: Omit<AppDefinition, "source" | "iconUrl" | "iconPath">) {
+  const sources = definition.spec.backups;
+  if (sources === undefined) return;
+  if (!Array.isArray(sources)) throw new Error("spec.backups must be an array");
+  const ids = new Set<string>();
+  for (const source of sources) {
+    if (!idPattern.test(source.id) || ids.has(source.id)) throw new Error("backup IDs must be unique lowercase slugs");
+    ids.add(source.id);
+    if (!source.label?.trim() || !source.description?.trim() || typeof source.enabledByDefault !== "boolean") throw new Error(`backup ${source.id} needs a label, description and default`);
+    if (!["files", "postgres", "sqlite", "settings"].includes(source.method)) throw new Error(`backup ${source.id} has an unsupported method`);
+    if (source.method === "files" || source.method === "sqlite") {
+      if (!definition.spec.volumes.some((volume) => volume.id === source.volume)) throw new Error(`backup ${source.id} names an unknown volume`);
+      if (!source.paths?.length || (source.method === "sqlite" && source.paths.length !== 1)) throw new Error(`backup ${source.id} needs source paths`);
+      for (const path of [...source.paths, ...(source.exclude || [])]) {
+        if (typeof path !== "string" || !/^[a-zA-Z0-9_./*-]+$/.test(path) || path.startsWith("/") || path.startsWith("-") || path.split("/").includes("..")) throw new Error(`backup ${source.id} paths must stay inside their volume`);
+      }
+    }
+    if (source.method === "postgres" && (!definition.spec.services.some((service) => service.id === source.service) || !/^[a-zA-Z0-9_]+$/.test(source.database || "") || !/^[a-zA-Z0-9_]+$/.test(source.username || ""))) throw new Error(`backup ${source.id} needs a database service, database and username`);
+    if (source.method === "settings" && !definition.spec.settingsFile) throw new Error(`backup ${source.id} needs spec.settingsFile`);
+  }
 }
 
 function validateManualSetup(manualSetup: AppDefinition["spec"]["manualSetup"]) {

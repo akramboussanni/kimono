@@ -126,6 +126,15 @@ their project directory, or mount undeclared volumes.
 `kimono server apply` runs the same reconciliation once, on demand. It exists
 for recovery and debugging; administration does not depend on it.
 
+## Automated backups
+
+**Admin → Backups** configures encrypted Backblaze B2 storage, nightly scheduling,
+retention, and recovery downloads. Enable or disable an entire app or individual
+items such as Immich originals, its database, or `config.json`. Apps declare
+their online export methods in `spec.backups`; normal backups keep containers
+running. See [backup setup and recovery](docs/backups.md) for coverage,
+consistency limits, and recovery-kit instructions.
+
 ## Application definitions
 
 Application stacks are file-backed by design. Kimono ships baked definitions

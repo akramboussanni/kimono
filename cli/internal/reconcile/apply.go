@@ -2,6 +2,7 @@ package reconcile
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -48,6 +49,7 @@ type Status struct {
 }
 
 type Reconciler struct {
+	Idle   func(context.Context) error
 	Runner *system.Runner
 	Paths  Paths
 	Now    func() time.Time

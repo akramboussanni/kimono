@@ -79,6 +79,18 @@ sudo kimono server stop
 sudo kimono server start
 ```
 
+Automated encrypted B2 backups are configured in **Admin → Backups**. Apps
+declare selectable data items and online export methods. The worker keeps apps
+running and supports whole-app and individual-item exclusions. Recovery downloads
+are verified into a separate directory. See [backup setup and recovery](../docs/backups.md).
+
+```bash
+sudo kimono server backup run
+sudo kimono server backup check
+sudo kimono server backup restore --snapshot FULL_SNAPSHOT_ID --app immich
+sudo kimono server backup import-kit /safe/kimono-recovery-kit.json
+```
+
 `server doctor` repeats the public DNS preflight and shows container health.
 `server repair` safely restores the embedded appliance files and expected bind
 mount permissions without deleting volumes or regenerating secrets. It also
