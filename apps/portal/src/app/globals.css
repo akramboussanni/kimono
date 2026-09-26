@@ -1020,9 +1020,9 @@ button, input { color: inherit; font: inherit; }
 .app-panel .settings-field input { max-width: 460px; }
 .app-panel .settings-field input, .app-panel .environment-field > input, .app-panel .environment-field > select { min-height: 48px; border: 2px solid var(--sumi); border-radius: 0; background: var(--paper-light); font-size: 15px; }
 .app-panel .settings-field input:focus, .app-panel .environment-field > input:focus { border-color: var(--vermillion); box-shadow: none; outline: none; }
-.app-panel .settings-toggle { gap: 15px; font-size: 15px; font-weight: 650; }
+.app-panel .settings-toggle, .backup-tray .settings-toggle { gap: 15px; font-size: 15px; font-weight: 650; }
 /* Running or not is the headline decision here, so it gets a switch, not a tickbox. */
-.app-panel .settings-toggle input {
+.app-panel .settings-toggle input, .backup-tray .settings-toggle input {
   position: relative;
   width: 54px;
   height: 30px;
@@ -1034,10 +1034,10 @@ button, input { color: inherit; font: inherit; }
   cursor: pointer;
   transition: background-color 170ms ease;
 }
-.app-panel .settings-toggle input::after { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; content: ""; background: var(--sumi); transition: transform 200ms cubic-bezier(.16, 1, .3, 1), background-color 170ms ease; }
-.app-panel .settings-toggle input:checked { background: var(--moss); }
-.app-panel .settings-toggle input:checked::after { background: var(--paper-light); transform: translateX(24px); }
-.app-panel .settings-toggle input:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 3px; }
+.app-panel .settings-toggle input::after, .backup-tray .settings-toggle input::after { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; content: ""; background: var(--sumi); transition: transform 200ms cubic-bezier(.16, 1, .3, 1), background-color 170ms ease; }
+.app-panel .settings-toggle input:checked, .backup-tray .settings-toggle input:checked { background: var(--moss); }
+.app-panel .settings-toggle input:checked::after, .backup-tray .settings-toggle input:checked::after { background: var(--paper-light); transform: translateX(24px); }
+.app-panel .settings-toggle input:focus-visible, .backup-tray .settings-toggle input:focus-visible { outline: 2px solid var(--vermillion); outline-offset: 3px; }
 .app-panel .admin-primary-button { border: 2px solid var(--sumi); border-radius: 0; font-size: 12px; box-shadow: 4px 4px 0 var(--hair); }
 .app-panel .admin-primary-button:hover { border-color: var(--sumi); background: var(--plum); box-shadow: 2px 2px 0 var(--hair); transform: translate(2px, 2px); }
 .app-panel .tunnel-empty-state h4 { margin: 0 0 8px; font: 600 27px/1.15 var(--font-display); letter-spacing: -.02em; }
@@ -1217,18 +1217,40 @@ button, input { color: inherit; font: inherit; }
   }
 
 /* Backup controls follow the administration form layout. */
-.backup-workspace { display: grid; gap: 1.5rem; }
-.backup-settings { display: grid; gap: 1.5rem; }
-.backup-section { padding: 1.5rem; display: grid; gap: 1rem; }
-.backup-section p { max-width: 80ch; }
-.backup-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; align-items: end; }
-.backup-fields label { display: grid; gap: .4rem; }
-.backup-fields input, .backup-fields select { width: 100%; min-width: 0; padding: .6rem; border: 1px solid currentColor; border-radius: .3rem; background: transparent; }
-.backup-toggle { display: flex; gap: .65rem; align-items: center; }
-.backup-app { border: 1px solid color-mix(in srgb, currentColor 20%, transparent); padding: 1rem; display: grid; gap: 1rem; }
-.backup-app legend { padding: 0 .4rem; font-weight: 600; }
-.backup-item { display: flex; gap: .75rem; align-items: flex-start; }
-.backup-item input { margin-top: .3rem; }
-.backup-item span { display: grid; gap: .3rem; }
-.backup-item small { opacity: .7; }
-.backup-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+/* Backups is a shelf of doors: what an app keeps is chosen on its own page.
+   Where copies go and when sits in one drawer beneath, closed once it is set. */
+.backup-workspace .admin-workspace-header { margin-bottom: var(--ma-2); }
+.backup-standing { display: grid; justify-items: end; gap: var(--ma-2); margin: 0; text-align: right; }
+.backup-standing > span:last-child { max-width: 34ch; color: var(--sumi); font-size: 13px; line-height: 1.45; }
+.backup-drawer { margin-top: var(--ma-6); border: var(--e-frame) solid var(--sumi); background: var(--paper-light); box-shadow: 7px 7px 0 var(--hair); }
+.backup-drawer > summary { min-height: 68px; display: flex; align-items: center; padding: 0 var(--ma-4); color: var(--sumi); cursor: pointer; list-style: none; }
+.backup-drawer > summary::-webkit-details-marker { display: none; }
+.backup-drawer > summary::after { margin-left: auto; content: "+"; font-size: 22px; }
+.backup-drawer[open] > summary { border-bottom: var(--e-rule) solid var(--sumi); }
+.backup-drawer[open] > summary::after { content: "−"; }
+.backup-drawer > summary > span { display: grid; gap: 3px; }
+.backup-drawer > summary strong { font: 600 19px/1.2 var(--font-display); letter-spacing: -.01em; }
+.backup-drawer > summary small { color: var(--sumi-soft); font: 11px/1.4 var(--font-mono); }
+.backup-drawer > .backup-tray { border: 0; box-shadow: none; }
+.backup-drawer > .backup-run { border-top: var(--e-rule) solid var(--sumi); }
+.backup-tray > footer { display: flex; justify-content: flex-end; padding: var(--ma-4) var(--ma-4); }
+.backup-tray .k-compartment > .k-body { padding: var(--ma-5) var(--ma-4); }
+.backup-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ma-2) var(--ma-4); }
+.backup-actions .k-mono { width: 100%; }
+@media (max-width: 720px) { .backup-standing { justify-items: start; text-align: left; } }
+.backup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: var(--ma-3) var(--ma-4); align-items: end; }
+.backup-grid .k-field input, .backup-grid .k-field select { max-width: none; }
+.backup-numbers { grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 150px)); }
+.backup-kit, .backup-switches { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ma-4) var(--ma-6); }
+.backup-kit { margin-top: var(--ma-4); padding-top: var(--ma-4); border-top: var(--e-hair) solid var(--hair); }
+.backup-switches { margin-bottom: var(--ma-5); }
+.backup-restore .k-seal { min-height: 44px; }
+.backup-restore-path { margin-top: var(--ma-3); }
+.app-backup-form .setup-general > div:last-child { display: grid; gap: var(--ma-3); justify-items: start; }
+.app-backup-form .k-row-lead .k-mono { color: var(--sumi-soft); }
+.app-backup-form .storage-table { margin: 0 var(--panel-inset) var(--ma-4); }
+.app-backup-form .storage-table > div { border-color: var(--hair); }
+.app-backup-form .storage-table code { color: var(--sumi-soft); }
+.app-backup-form .storage-table span { color: var(--sumi-soft); font-size: 11px; }
+.app-panel .app-backup-form > footer { gap: var(--ma-2); }
+@media (max-width: 720px) { .app-backup-form .k-row { align-items: center; flex-direction: row; flex-wrap: nowrap; } }

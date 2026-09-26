@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
-import { readBackupConfig } from "@/lib/backups";
+import { appBackupSelection, readBackupConfig, readBackupStatus, saveAppBackups } from "@/lib/backups";
+import { backupCatalog } from "@/lib/backup-catalog";
 import { AppShell } from "@/components/app-shell";
 import { getAppDefinition, type ConfigurationField } from "@/lib/definitions";
 import {
@@ -12,7 +13,7 @@ import {
   tunnelIsReady,
   tunnelZones,
 } from "@/lib/settings";
-import { Compartment } from "@kimono/ui";
+import { Compartment, Mono, Row, Rows } from "@kimono/ui";
 import { Crossing } from "@/components/crossing";
 import { DoorBack } from "@/components/door-back";
 import { AppBloom } from "@kimono/ui";
@@ -23,12 +24,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-type View = "setup" | "settings" | "environment" | "storage";
+type View = "setup" | "settings" | "environment" | "backups";
 const views: Array<{ id: View; label: string }> = [
   { id: "setup", label: "Setup" },
   { id: "settings", label: "Settings" },
   { id: "environment", label: "Advanced" },
-  { id: "storage", label: "Storage" },
+  { id: "backups", label: "Backups" },
 ];
 
 async function requireAdmin() {
@@ -63,15 +64,17 @@ export default async function AppManagementPage({
   const [definition, settings] = await Promise.all([getAppDefinition(id), getPlatformSettings()]);
   if (!definition) notFound();
   const instance = settings.apps[id];
-  const backupConfig = await readBackupConfig();
+  const [backupConfig, backupStatus] = await Promise.all([readBackupConfig(), readBackupStatus()]);
+  const backup = appBackupSelection(backupConfig, backupCatalog(settings, [definition]), id);
   // An app that keeps its own settings document earns a Settings view; the
   // Advanced view stays what it has always been, this stack's variables.
-  const availableViews = views.filter((item) => item.id !== "settings" || definition.spec.configuration.some((field) => field.target === "settings"));
+  const availableViews = views.filter((item) => (item.id !== "settings" || definition.spec.configuration.some((field) => field.target === "settings")) && (item.id !== "backups" || id !== "kimono-portal"));
   const selectedView = availableViews.some((item) => item.id === query.view) ? query.view as View : "setup";
   const viewHref = (view: View) => `/admin/apps/${id}?view=${view}`;
   const setupHref = `/admin/apps/${id}?view=setup`;
   const environmentHref = `/admin/apps/${id}?view=environment`;
   const settingsHref = `/admin/apps/${id}?view=settings`;
+  const backupsHref = `/admin/apps/${id}?view=backups`;
 
   async function install() {
     "use server";
@@ -120,6 +123,14 @@ export default async function AppManagementPage({
     }
     catch (error) { redirect(`${settingsHref}&error=${encodeURIComponent(error instanceof Error ? error.message : "Settings could not be saved")}`); }
     redirect(`${settingsHref}&saved=1`);
+  }
+
+  async function saveBackups(form: FormData) {
+    "use server";
+    await requireAdmin();
+    try { await saveAppBackups(id, form); }
+    catch (error) { redirect(`${backupsHref}&error=${encodeURIComponent(error instanceof Error ? error.message : "Backup choices could not be saved")}`); }
+    redirect(`${backupsHref}&saved=1`);
   }
 
   const fieldQuery = query.q?.trim().toLowerCase() || "";
@@ -257,18 +268,25 @@ export default async function AppManagementPage({
                 </>
               ) : null}
 
-              {selectedView === "storage" ? (
-                <section>
-                  <header className="panel-heading"><div><h2>Storage</h2><p>Persistent volumes declared by the app stack.</p></div></header>
-                  {definition.spec.volumes.length ? <div className="storage-table">{definition.spec.volumes.map((volume) => <div key={volume.id}><strong>{volume.backupLabel || volume.id}</strong><code>{volume.service}:{volume.path}</code><span>{volume.backupDescription || "Persistent app data"}</span></div>)}</div> : <p className="catalog-empty">This app does not declare persistent volumes.</p>}
-                  <h3>Backup items</h3>
-                  <p>{backupConfig?.enabled ? "Automatic backups are enabled." : "Automatic backups are not enabled."} Select this app and its individual items in Backups.</p>
-                  {definition.spec.backups?.length ? <div className="storage-table">{definition.spec.backups.map((item) => {
-                    const selected = (backupConfig?.apps[id] ?? instance?.enabled ?? false) && (backupConfig?.items[`${id}/${item.id}`] ?? item.enabledByDefault);
-                    return <div key={item.id}><strong>{item.label}</strong><span>{item.description}</span><span>{selected ? "Selected" : "Excluded"}</span></div>;
-                  })}</div> : <p>No online backup items declared.</p>}
-                  <SealLink href={`/admin/backups#${id}`}>Manage backups</SealLink>
-                </section>
+              {selectedView === "backups" ? (
+                <form action={saveBackups} className="management-form app-backup-form k-tray">
+                  <header><h2>Backups</h2></header>
+                  {!backupConfig ? (
+                    <Compartment label="Keep" wants className="setup-section setup-address needs-tunnel"><div className="tunnel-empty-state"><h4>No storage yet</h4><p>Choose where backups go first, then pick what {instance.name} keeps here.</p><div className="tunnel-empty-actions"><SealLink href="/admin/backups">Set up backups</SealLink></div></div></Compartment>
+                  ) : !backup.items.length ? (
+                    <Compartment label="Keep" wants className="setup-section setup-address needs-tunnel"><div className="tunnel-empty-state"><h4>Unprotected</h4><p>This app declares nothing to back up, so its data is not kept.</p></div></Compartment>
+                  ) : <>
+                    <Compartment label="Keep" wants={backup.enabled && !backup.kept.length} className="setup-section setup-general"><div>
+                      <RunJoint name="enabled" defaultChecked={backup.enabled} label="Back up this app" />
+                      <Mono items={[backupConfig.enabled ? `Nightly at ${String(backupConfig.hourUTC).padStart(2, "0")}:00 UTC` : "Schedule paused", `Last upload ${backupStatus?.lastSuccess ? new Date(backupStatus.lastSuccess).toUTCString().replace(/:\d\d GMT$/, " UTC") : "never"}`]} />
+                    </div></Compartment>
+                    <Compartment label="Items" className="setup-section"><Rows>
+                      {backup.items.map((item) => <Row key={item.id} title={item.label} lead={<span className="k-mono">{{ files: "Live file copy", postgres: "PostgreSQL export", sqlite: "SQLite export", settings: "Configuration file" }[item.method]}</span>} action={<label className="settings-toggle"><input type="checkbox" name={`item.${item.id}`} defaultChecked={backupConfig.items[item.id] ?? item.enabledByDefault} /><span className="sr-only">Keep {item.label}</span></label>}>{item.description}</Row>)}
+                    </Rows></Compartment>
+                  </>}
+                  {definition.spec.volumes.length ? <details className="setup-advanced"><summary>Volumes on disk</summary><div className="storage-table">{definition.spec.volumes.map((volume) => <div key={volume.id}><strong>{volume.backupLabel || volume.id}</strong><code>{volume.service}:{volume.path}</code><span>{volume.backupDescription || "Persistent app data"}</span></div>)}</div></details> : null}
+                  <footer>{backupConfig && backup.items.length ? <Seal type="submit">Save backups</Seal> : null}<SealLink href="/admin/backups" tone="quiet">All backups</SealLink></footer>
+                </form>
               ) : null}
               </div>
             )}

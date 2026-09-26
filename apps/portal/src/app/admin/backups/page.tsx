@@ -1,30 +1,53 @@
 import { auth } from "@/auth";
 import { AppShell } from "@/components/app-shell";
 import { AdminNavigation } from "@/components/admin-navigation";
-import { Compartment, Seal, SealLink } from "@kimono/ui";
+import { Crossing } from "@/components/crossing";
+import { AppBloom, StatedSeal } from "@kimono/ui";
+import { accentOf } from "@/lib/apps";
 import { getPlatformSettings } from "@/lib/settings";
 import { scanAppDefinitions } from "@/lib/definitions";
 import { backupCatalog } from "@/lib/backup-catalog";
-import { readBackupConfig, readBackupStatus, requestBackup, saveBackups } from "@/lib/backups";
+import { appBackupSelection, readBackupConfig, readBackupStatus, requestBackup, saveBackups } from "@/lib/backups";
 import { redirect } from "next/navigation";
-import { BackupRefresh } from "./refresh";
+import { BackupMachinery, backupHealth } from "./machinery";
 
 export const metadata = { title: "Backups · Admin" };
+
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (!["owner", "admin"].includes(session.user.role)) redirect("/");
   return session;
 }
-const methods = { files: "Live file copy", postgres: "Online PostgreSQL export", sqlite: "Online SQLite export", settings: "Configuration file" };
 
+/**
+ * What each app keeps is chosen on that app's page, so this is first a shelf
+ * of doors, each stamped with where the app stands. Where copies go and when
+ * is Kimono's business: it sits in a drawer beneath, closed once it is set.
+ */
 export default async function BackupsPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string; queued?: string }> }) {
   const session = await requireAdmin();
   const [settings, scan, config, status, query] = await Promise.all([getPlatformSettings(), scanAppDefinitions(), readBackupConfig(), readBackupStatus(), searchParams]);
   const catalog = backupCatalog(settings, scan.definitions);
-  const appIds = [...new Set(catalog.map((item) => item.appId))];
-  const overdue = config?.enabled && status?.overdue;
-  const undeclared = Object.values(settings.apps).filter((app) => app.enabled && app.definitionId !== "kimono-portal" && !catalog.some((item) => item.appId === app.id));
+  const health = backupHealth(config, status);
+  const order = ["problem", "disabled", "private"];
+
+  const cards = Object.values(settings.apps).filter((app) => app.definitionId !== "kimono-portal").map((app) => {
+    const definition = scan.definitions.find((item) => item.metadata.id === app.definitionId);
+    const base = { id: app.id, name: app.name, description: definition?.metadata.description || "", iconUrl: definition?.iconUrl, accent: accentOf(app.colors || definition?.metadata.colors || []) };
+    const selection = appBackupSelection(config, catalog, app.id);
+    const count = `${selection.items.length} item${selection.items.length === 1 ? "" : "s"}`;
+    const card = !selection.items.length
+      ? { state: "problem", seal: "wants" as const, label: "Unprotected", detail: "Declares nothing to back up" }
+      : !selection.enabled
+        ? { state: "disabled", seal: "private" as const, label: "Off", detail: `${count} available` }
+        : !selection.kept.length
+          ? { state: "problem", seal: "wants" as const, label: "Nothing kept", detail: "Every item is switched off" }
+          : { state: "private", seal: "running" as const, label: "Protected", detail: `${selection.kept.length} of ${count}` };
+    return { ...base, rank: order.indexOf(card.state), ...card };
+  }).toSorted((left, right) => left.rank - right.rank || left.name.localeCompare(right.name));
+  const protectedCount = cards.filter((card) => card.label === "Protected").length;
+
   async function save(form: FormData) {
     "use server";
     await requireAdmin();
@@ -42,79 +65,39 @@ export default async function BackupsPage({ searchParams }: { searchParams: Prom
     } catch (error) { redirect(`/admin/backups?error=${encodeURIComponent(error instanceof Error ? error.message : "Operation could not be queued")}`); }
     redirect("/admin/backups?queued=1");
   }
+
   return <AppShell user={session.user} brandColors={settings.brand.colors} active="admin">
     <div className="page admin-page backup-workspace">
-      <BackupRefresh active={status?.state === "running" || Boolean(query.queued)} />
       <AdminNavigation active="backups" />
-      <header className="admin-workspace-header"><div><h1>Backups</h1><p>Choose what to protect. Apps stay online, and data is encrypted before it leaves this server.</p></div></header>
+      <header className="admin-workspace-header">
+        <div><h1>Backups</h1><p>Each app decides what it keeps.</p></div>
+        <p className="backup-standing"><StatedSeal state={health.state}>{health.label}</StatedSeal><span>{health.line}</span></p>
+      </header>
       {query.error ? <p role="alert" className="admin-notice error">{query.error}</p> : null}
       {query.saved ? <p role="status" className="admin-notice success">Backup settings saved.</p> : null}
-      {query.queued ? <p role="status" className="admin-notice">Request submitted. Status updates automatically.</p> : null}
+      {query.queued ? <p role="status" className="admin-notice">Queued. This page follows along.</p> : null}
       {scan.errors.map((error) => <p className="admin-notice error" key={error}>{error}</p>)}
-      {undeclared.map((app) => <p className="admin-notice error" key={app.id}>{app.name} has no backup items declared. Its app data is not protected.</p>)}
-      <Compartment label="Backup health">
-        <div className="backup-section">
-          <h2>{status?.state === "failed" || overdue ? "Needs attention" : status?.state === "running" ? "Working" : config?.enabled ? "Scheduled nightly" : "Schedule paused"}</h2>
-          <p role="status">{status?.message || (config?.enabled ? "Waiting for the first scheduled backup. You can also start one now." : config ? "Scheduling is paused. Save your recovery kit to enable manual or scheduled backups." : "Configure a destination and save your recovery kit to get started.")}</p>
-          {overdue ? <p role="alert" className="admin-notice error">No complete upload in the last 36 hours. Check that the server worker is running.</p> : null}
-          <p>Last complete upload: {status?.lastSuccess ? new Date(status.lastSuccess).toUTCString() : "No successful backup yet"}</p>
-          <p>Last integrity check: {status?.lastCheck ? new Date(status.lastCheck).toUTCString() : "Not checked yet"}</p>
-          <form action={run} className="backup-actions"><Seal name="action" value="backup" type="submit" disabled={!config?.recoverySaved || status?.state === "running"}>Back up now</Seal><Seal name="action" value="check" type="submit" disabled={!config?.recoverySaved || status?.state === "running"}>Check stored data</Seal><SealLink href="/admin/backups">Refresh</SealLink></form>
-        </div>
-      </Compartment>
-      <form action={save} className="backup-settings">
-        <Compartment label="Encrypted storage"><div className="backup-section">
-          <h2>Backblaze B2</h2><p>Use a dedicated private bucket and an application key scoped to it, with read, write, list, and delete access for retention.</p>
-          <div className="backup-fields">
-            <label>S3 endpoint<input name="endpoint" type="url" required defaultValue={config?.endpoint || ""} placeholder="https://s3.us-west-004.backblazeb2.com" /></label>
-            <label>Bucket<input name="bucket" required defaultValue={config?.bucket || ""} /></label>
-            <label>Repository folder<input name="prefix" required defaultValue={config?.prefix || "kimono"} /></label>
-            <label>Application key ID<input name="keyId" autoComplete="off" defaultValue={config?.keyId || ""} /></label>
-            <label>Application key<input name="applicationKey" type="password" autoComplete="new-password" placeholder={config ? "Configured — leave blank to keep" : "B2 application key"} /></label>
-          </div>
-          <p>Kimono generates the encryption password. Save this destination first, then download the recovery kit. The kit includes the password and storage credentials; keep it in your password manager outside this server.</p>
-          {config ? <><SealLink href="/api/backups/recovery-kit">Download recovery kit</SealLink><label className="backup-toggle"><input name="recoverySaved" type="checkbox" defaultChecked={config.recoverySaved} />I have stored the recovery kit safely outside this server.</label></> : null}
-        </div></Compartment>
-        <Compartment label="Schedule and retention"><div className="backup-section">
-          <label className="backup-toggle"><input name="enabled" type="checkbox" defaultChecked={config?.enabled || false} />Enable automatic nightly backups</label>
-          <div className="backup-fields">
-            <label>Hour (UTC, 0–23)<input type="number" name="hourUTC" min="0" max="23" required defaultValue={config?.hourUTC ?? 3} /></label>
-            <label>Daily snapshots<input type="number" name="daily" min="1" max="365" required defaultValue={config?.daily ?? 7} /></label>
-            <label>Weekly snapshots<input type="number" name="weekly" min="1" max="104" required defaultValue={config?.weekly ?? 4} /></label>
-            <label>Monthly snapshots<input type="number" name="monthly" min="1" max="120" required defaultValue={config?.monthly ?? 6} /></label>
-          </div><p>Missed runs are caught up after the scheduled hour. Failed runs retry hourly. Retention runs only after a complete upload; a sample of stored data is checked weekly.</p>
-        </div></Compartment>
-        <Compartment label="What gets backed up"><div className="backup-section">
-          <h2>Platform recovery</h2>
-          <label className="backup-toggle"><input name="platform" type="checkbox" defaultChecked={config?.platform ?? true} />Kimono configuration, secrets, identity, and mesh</label>
-          <p>Includes platform settings and app deployment configuration even when an app’s data backups are off. Certificates can be reissued. Backups use local staging space roughly equal to the selected data.</p>
-          <h2>Applications</h2><p>An app switch controls all its items and keeps your individual selections. Unchecked items will be absent from new backups; older snapshots remain until retention removes them.</p>
-          {appIds.map((appId) => {
-            const items = catalog.filter((item) => item.appId === appId);
-            return <fieldset className="backup-app" key={appId} id={appId}>
-              <legend>{items[0].appName}</legend>
-              <label className="backup-toggle"><input type="checkbox" name={`app.${appId}`} defaultChecked={config?.apps[appId] ?? items[0].active} />Enable backups for this app</label>
-              {!items[0].active ? <p>This app is currently disabled. Online database exports need its database container running.</p> : null}
-              {items.map((item) => <label className="backup-item" key={item.id}>
-                <input type="checkbox" name={`item.${item.id}`} defaultChecked={config?.items[item.id] ?? item.enabledByDefault} />
-                <span><strong>{item.label}</strong><span>{item.description}</span><small>{methods[item.method]}</small></span>
-              </label>)}
-            </fieldset>;
-          })}
-          <p>Online exports keep services available. Files changing during backup can make a run fail, and databases and files are not a single point-in-time snapshot. Keep related database, file, and encryption-key items selected for a recoverable app.</p>
-          <footer><Seal type="submit">Save backup settings</Seal></footer>
-        </div></Compartment>
-      </form>
-      <Compartment label="Recovery"><div className="backup-section">
-        <h2>Restore a copy</h2><p>Choose a snapshot to download and verify into a separate recovery directory. Recover one app or the entire snapshot. Replacing live data is a separate recovery step.</p>
-        {status?.restorePath ? <p>Latest recovery directory: <code>{status.restorePath}</code></p> : null}
-        {status?.snapshots?.length ? <form action={run} className="backup-fields">
-          <input type="hidden" name="action" value="restore" />
-          <label>Snapshot<select name="snapshot">{status.snapshots.map((snapshot) => <option key={snapshot.id} value={snapshot.id}>{new Date(snapshot.time).toUTCString()} · {snapshot.id.slice(0, 8)}{snapshot.summary?.total_bytes_processed ? ` · ${(snapshot.summary.total_bytes_processed / 1024 ** 3).toFixed(2)} GiB` : ""}</option>)}</select></label>
-          <label>Contents<select name="appId"><option value="">Entire snapshot</option>{appIds.map((id) => <option key={id} value={id}>{catalog.find((item) => item.appId === id)?.appName}</option>)}</select></label>
-          <Seal type="submit" disabled={status.state === "running"}>Restore a copy</Seal>
-        </form> : <p>Completed snapshots will appear here after the first backup.</p>}
-      </div></Compartment>
+      <div className="catalog-results-heading"><h2>Apps</h2><span>{protectedCount} of {cards.length} protected</span></div>
+      <div className="app-catalog-grid">
+        {cards.map((card) => <Crossing className={`catalog-app state-${card.state}`} kind="kakejiku" href={`/admin/apps/${card.id}?view=backups`} key={card.id}>
+          <span className="catalog-card-top">
+            <span className="catalog-icon"><AppBloom identity={{ id: card.id, name: card.name, accent: card.accent }} glyphHref={card.iconUrl} /></span>
+            <StatedSeal state={card.seal}>{card.label}</StatedSeal>
+          </span>
+          <span className="catalog-copy">
+            <span className="catalog-title"><strong>{card.name}</strong></span>
+            <span className="catalog-description">{card.description}</span>
+            <span className="catalog-card-footer">
+              <span className={card.state === "problem" ? "is-wanted" : undefined}>{card.detail}</span>
+              <span className="catalog-arrow" aria-hidden="true">Open <b>→</b></span>
+            </span>
+          </span>
+        </Crossing>)}
+      </div>
+      <details className="backup-drawer" open={!config || Boolean(query.error || query.saved || query.queued)}>
+        <summary><span><strong>Where and when</strong><small>{config ? `${config.bucket} · ${config.enabled ? `nightly at ${String(config.hourUTC).padStart(2, "0")}:00 UTC` : "schedule paused"}` : "No storage yet"}</small></span></summary>
+        <BackupMachinery config={config} status={status} save={save} run={run} queued={Boolean(query.queued)} apps={cards.filter((card) => card.label !== "Unprotected").map((card) => ({ id: card.id, name: card.name }))} />
+      </details>
     </div>
   </AppShell>;
 }

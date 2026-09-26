@@ -128,8 +128,9 @@ for recovery and debugging; administration does not depend on it.
 
 ## Automated backups
 
-**Admin → Backups** configures encrypted Backblaze B2 storage, nightly scheduling,
-retention, and recovery downloads. Enable or disable an entire app or individual
+**Admin → Backups** shows each app's protection at a glance and opens its page,
+with encrypted Backblaze B2 storage, nightly scheduling, retention, and recovery
+folded beneath. An app's **Backups** view switches the whole app or individual
 items such as Immich originals, its database, or `config.json`. Apps declare
 their online export methods in `spec.backups`; normal backups keep containers
 running. See [backup setup and recovery](docs/backups.md) for coverage,

@@ -13,14 +13,16 @@ Docker socket.
 2. Create a **dedicated private B2 bucket** and an application key scoped to that
    bucket with list, read, write, and delete permissions. Do not use your master
    account key. Use a new repository folder for each Kimono appliance.
-3. Open **Admin → Backups**. Enter the bucket, its HTTPS S3 endpoint, application
-   key ID, and application key. Save with the schedule disabled.
+3. Open **Admin → Backups** and unfold **Where and when** beneath the app cards.
+   Enter the bucket, its HTTPS S3 endpoint, application key ID, and application
+   key. Save with the schedule disabled.
 4. Download the recovery kit and keep it outside the server, preferably in a
    password manager. It contains the encryption password and B2 credentials.
    Losing the password makes the backups unrecoverable. Anyone with the kit can
    read and delete the repository.
-5. Confirm you saved the kit, select apps and individual items, enable the
-   schedule, and save. Run **Back up now**, then inspect the result.
+5. Confirm you saved the kit, turn on nightly backups, and save. Each app card
+   on the Backups page opens that app's own **Backups** view, where its switch
+   and individual items live. Run **Back up now**, then inspect the result.
 6. Use **Restore a copy** to exercise recovery before relying on the backups.
 
 Changing the destination or B2 credentials requires saving with the schedule
@@ -39,6 +41,9 @@ start from a backup; rehearse the application restore too.
 
 ## Choosing contents
 
+Each app chooses what it keeps on its own page (**Admin → Applications → app →
+Backups**); the Backups page is a shelf of those pages, stamped with each app's
+state, with storage, schedule, and restore folded beneath.
 An app's backup switch overrides all its item switches without clearing them.
 Turning it back on restores those choices. Disabling an item affects new
 snapshots, not previously stored snapshots. Turning off the schedule leaves
@@ -108,7 +113,7 @@ if they are consuming storage.
 
 ### On a working appliance
 
-In **Admin → Backups → Restore a copy**, choose a snapshot and either the entire
+In **Admin → Backups → Where and when → Restore**, choose a snapshot and either the entire
 snapshot or one app. Kimono downloads it into a new private directory under
 `${KIMONO_HOME}/restores/recovery-*` and asks restic to verify the restored data.
 The directory is shown in Admin. This never overwrites live volumes. Selective

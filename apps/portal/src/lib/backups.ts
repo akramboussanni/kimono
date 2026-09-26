@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { stateDir } from "./state";
-import { backupCatalog } from "./backup-catalog";
+import { backupCatalog, type BackupItem } from "./backup-catalog";
 import { scanAppDefinitions } from "./definitions";
 import { getPlatformSettings } from "./settings";
 import { publishDesiredState } from "./desired-state";
@@ -38,6 +38,20 @@ async function atomic(name: string, value: unknown) {
   await writeFile(temporary, JSON.stringify(value, null, 2) + "\n", { mode: 0o600 });
   await rename(temporary, join(backupDir, name));
 }
+/** The stored choice for every catalog entry, defaults filled in for anything new. */
+function selectionFor(catalog: BackupItem[], previous: BackupConfig | null) {
+  return {
+    apps: Object.fromEntries([...new Set(catalog.map((item) => item.appId))].map((id) => [id, previous?.apps[id] ?? catalog.find((item) => item.appId === id)!.active])),
+    items: Object.fromEntries(catalog.map((item) => [item.id, previous?.items[item.id] ?? item.enabledByDefault])),
+  };
+}
+/** What one app keeps, as the worker will read it. */
+export function appBackupSelection(config: BackupConfig | null, catalog: BackupItem[], appId: string) {
+  const items = catalog.filter((item) => item.appId === appId);
+  const enabled = config?.apps[appId] ?? items[0]?.active ?? false;
+  const kept = items.filter((item) => config?.items[item.id] ?? item.enabledByDefault);
+  return { enabled, items, kept, protected: enabled && kept.length > 0 };
+}
 export async function saveBackups(form: FormData) {
   const previous = await readBackupConfig();
   const endpoint = String(form.get("endpoint") || "").trim().replace(/\/$/, "");
@@ -68,13 +82,30 @@ export async function saveBackups(form: FormData) {
     password: previous?.password || randomBytes(32).toString("hex"), recoverySaved,
     hourUTC: integer("hourUTC", 0, 23), daily: integer("daily", 1, 365), weekly: integer("weekly", 1, 104), monthly: integer("monthly", 1, 120),
     platform: form.get("platform") === "on",
-    apps: Object.fromEntries([...new Set(catalog.map((item) => item.appId))].map((id) => [id, form.get(`app.${id}`) === "on"])),
-    items: Object.fromEntries(catalog.map((item) => [item.id, form.get(`item.${item.id}`) === "on"])),
+    ...selectionFor(catalog, previous),
   };
-  if (enabled && !config.platform && !catalog.some((item) => config.apps[item.appId] && config.items[item.id])) throw new Error("Select at least one backup item.");
+  if (enabled && !config.platform && !catalog.some((item) => config.apps[item.appId] && config.items[item.id])) throw new Error("Choose at least one app to back up, or keep Kimono itself.");
   await publishDesiredState(settings);
   await atomic("config.json", config);
   if (destinationChanged) await atomic("status.json", { state: "ready", message: "Storage settings changed. Save the updated recovery kit, then run a backup or integrity check.", updatedAt: new Date().toISOString() });
+}
+/** One app's switch and items, changed from its own page. Storage must exist first. */
+export async function saveAppBackups(appId: string, form: FormData) {
+  const previous = await readBackupConfig();
+  if (!previous) throw new Error("Set up backup storage in Backups before choosing what this app keeps.");
+  const settings = await getPlatformSettings();
+  const { definitions, errors } = await scanAppDefinitions();
+  if (errors.length) throw new Error(`Fix application definition errors before saving backups: ${errors.join("; ")}`);
+  const catalog = backupCatalog(settings, definitions);
+  const own = catalog.filter((item) => item.appId === appId);
+  if (!own.length) throw new Error("This app declares nothing to back up.");
+  const selection = selectionFor(catalog, previous);
+  selection.apps[appId] = form.get("enabled") === "on";
+  for (const item of own) selection.items[item.id] = form.get(`item.${item.id}`) === "on";
+  const config: BackupConfig = { ...previous, ...selection };
+  if (config.enabled && !config.platform && !catalog.some((item) => config.apps[item.appId] && config.items[item.id])) throw new Error("Nightly backups would have nothing to keep. Choose at least one item or turn the schedule off in Backups.");
+  await publishDesiredState(settings);
+  await atomic("config.json", config);
 }
 export async function requestBackup(action: "backup" | "check" | "restore", snapshot = "", appId = "") {
   const config = await readBackupConfig();
