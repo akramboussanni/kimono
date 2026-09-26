@@ -53,6 +53,9 @@ const idPattern = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const colorPattern = /^#[0-9a-f]{6}$/i;
 
 function hostnameFromUrl(value: string | undefined) { try { return value ? new URL(value).hostname : ""; } catch { return ""; } }
+function configuredPortalHostname() {
+  return hostnameFromUrl(process.env.KIMONO_PORTAL_URL) || hostnameFromUrl(process.env.AUTH_URL);
+}
 function validPalette(value: unknown, fallback: Palette): Palette {
   return Array.isArray(value) && value.length === 3 && value.every((item) => typeof item === "string" && colorPattern.test(item)) ? value as unknown as Palette : fallback;
 }
@@ -78,7 +81,7 @@ function defaults(): PlatformSettings {
     apps: {
       "kimono-portal": {
         id: "kimono-portal", definitionId: "kimono-portal", name: "Kimono Portal", enabled: true,
-        domain: hostnameFromUrl(process.env.KIMONO_PORTAL_URL) || "kimono", colors: ["#d77b8c", "#5f3441", "#f2cbd2"],
+        domain: configuredPortalHostname() || "kimono", colors: ["#d77b8c", "#5f3441", "#f2cbd2"],
         tunnelId: "public", environment: {}, networkPolicy: { internetAccess: true, allowedApps: [] },
       },
       // Applications start unpublished. An administrator enables Notes, picks its
@@ -140,6 +143,10 @@ function normalize(value: unknown): PlatformSettings {
       if (instance) apps[id] = instance;
     }
   }
+  // The appliance configuration controls the Portal's public origin. Older
+  // settings may have persisted the fallback hostname before it was passed in.
+  const portalHostname = configuredPortalHostname();
+  if (portalHostname && apps["kimono-portal"]) apps["kimono-portal"].domain = portalHostname;
   const tunnels = { ...fallback.tunnels };
   if ((input.version === 3 || input.version === 4) && input.tunnels && typeof input.tunnels === "object") {
     for (const [id, raw] of Object.entries(input.tunnels)) {

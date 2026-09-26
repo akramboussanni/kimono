@@ -454,6 +454,13 @@ func (m *Manager) update() error {
 	if err := m.ensureServerEnvironment(); err != nil {
 		return err
 	}
+	if _, err := os.Stat(m.cloudflareConfigPath()); err == nil {
+		if err := m.installCloudflareTimer(); err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 	// A locally loaded or not-yet-published image must not block the update;
 	// Compose recreates from what the daemon already holds.
 	if err := m.compose("pull", "--ignore-pull-failures"); err != nil {

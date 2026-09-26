@@ -154,7 +154,7 @@ Description=Run Kimono Cloudflare Dynamic DNS
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=5min
+OnUnitActiveSec=1min
 RandomizedDelaySec=30s
 Persistent=true
 

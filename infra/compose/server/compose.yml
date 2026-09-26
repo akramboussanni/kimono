@@ -143,6 +143,7 @@ services:
       # Pin the public origin: behind the proxy the container would otherwise
       # derive sign-in redirects from its own bind address.
       AUTH_URL: https://${KIMONO_PORTAL_DOMAIN}/api/auth
+      KIMONO_PORTAL_URL: https://${KIMONO_PORTAL_DOMAIN}
       AUTH_TRUST_HOST: "true"
       KIMONO_BASE_DOMAIN: ${KIMONO_BASE_DOMAIN:?base domain required}
       KIMONO_IDENTITY_DOMAIN: ${AUTHENTIK_DOMAIN:?Authentik domain required}
